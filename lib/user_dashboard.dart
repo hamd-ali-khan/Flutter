@@ -1,27 +1,23 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'edit_profile.dart';
-import 'product.dart';
 import '/login.dart';
 
-class Dashboard extends StatefulWidget {
-  const Dashboard({super.key});
+class UserDashboard extends StatefulWidget {
+  const UserDashboard({super.key});
 
   @override
-  State<Dashboard> createState() => _DashboardState();
+  State<UserDashboard> createState() => _UserDashboardState();
 }
 
-class _DashboardState extends State<Dashboard> {
+class _UserDashboardState extends State<UserDashboard> {
   int _currentIndex = 0;
 
-  int _selectedBottomIndex = 0;
   String userName = '';
   String userEmail = '';
 
   final List<Widget> _pages = const [
-    Center(child: Text("Home Page", style: TextStyle(fontSize: 22))),
-    // Center(child: Text("Products Page", style: TextStyle(fontSize: 22))),
-    Center(child: Text("Users Page", style: TextStyle(fontSize: 22))),
+    Center(child: Text("User Dashboard Page", style: TextStyle(fontSize: 22))),
+    Center(child: Text("Products Page", style: TextStyle(fontSize: 22))),
     Center(child: Text("Profile Page", style: TextStyle(fontSize: 22))),
   ];
 
@@ -31,11 +27,11 @@ class _DashboardState extends State<Dashboard> {
     loadUserData();
   }
 
-  //  LOAD USER DATA FROM SHARED PREFERENCES
+  // LOAD USER DATA FROM SHARED PREFERENCES
   Future<void> loadUserData() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     setState(() {
-      userName = prefs.getString('name') ?? 'Admin';
+      userName = prefs.getString('name') ?? 'User';
       userEmail = prefs.getString('email') ?? '';
     });
   }
@@ -44,9 +40,6 @@ class _DashboardState extends State<Dashboard> {
   Future<void> logout() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     await prefs.clear();
-
-    if (!mounted) return;
-
     Navigator.pushAndRemoveUntil(
       context,
       MaterialPageRoute(builder: (_) => const Login()),
@@ -54,51 +47,20 @@ class _DashboardState extends State<Dashboard> {
     );
   }
 
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: PreferredSize(
-        preferredSize: const Size.fromHeight(kToolbarHeight),
-        child: Container(
-          decoration: const BoxDecoration(
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black26,
-                blurRadius: 8,
-                offset: Offset(0, 3),
-              ),
-            ],
-          ),
-          child: AppBar(
-            backgroundColor: Colors.white,
-            elevation: 0,
-            shadowColor: Colors.transparent,
-            title: Text(
-              "Dashboard",
-              style: const TextStyle(color: Colors.black),
+      appBar: AppBar(
+        title: Text("User Dashboard - $userName"),
+        centerTitle: true,
+        actions: [
+          Padding(
+            padding: const EdgeInsets.only(right: 16),
+            child: CircleAvatar(
+              child: const Icon(Icons.person),
             ),
-            centerTitle: true,
-            actions: [
-              Padding(
-                padding: const EdgeInsets.only(right: 16),
-                child: GestureDetector(
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (_) => const EditProfileScreen()),
-                    );
-                  },
-                  child: const CircleAvatar(
-                    radius: 20,
-                    child: Icon(Icons.person),
-                  ),
-                ),
-              ),
-            ],
-
           ),
-        ),
+        ],
       ),
 
       // Drawer menu
@@ -131,19 +93,11 @@ class _DashboardState extends State<Dashboard> {
               },
             ),
             ListTile(
-              leading: const Icon(Icons.supervised_user_circle),
-              title: const Text("Users"),
-              onTap: () {
-                Navigator.pop(context);
-                setState(() => _currentIndex = 2);
-              },
-            ),
-            ListTile(
               leading: const Icon(Icons.person),
               title: const Text("Profile"),
               onTap: () {
                 Navigator.pop(context);
-                setState(() => _currentIndex = 3);
+                setState(() => _currentIndex = 2);
               },
             ),
             const Divider(),
@@ -178,42 +132,20 @@ class _DashboardState extends State<Dashboard> {
           borderRadius: BorderRadius.circular(24),
           child: BottomNavigationBar(
             type: BottomNavigationBarType.fixed,
-            currentIndex: _selectedBottomIndex,
+            currentIndex: _currentIndex,
             selectedItemColor: Colors.blueAccent,
             unselectedItemColor: Colors.grey,
             showUnselectedLabels: true,
             backgroundColor: Colors.white,
             elevation: 0,
             onTap: (index) {
-              if (index == 1) {
-                // PRODUCTS → OPEN NEW SCREEN
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => const BakerProductPage(),
-                  ),
-                );
-              } else {
-                setState(() {
-                  _selectedBottomIndex = index;
-
-                  if (index == 0) {
-                    _currentIndex = 0; // Home
-                  } else if (index == 2) {
-                    _currentIndex = 1; // Users
-                  } else if (index == 3) {
-                    _currentIndex = 2; // Profile
-                  }
-                });
-              }
+              setState(() {
+                _currentIndex = index;
+              });
             },
-
-
-
             items: const [
               BottomNavigationBarItem(icon: Icon(Icons.home, size: 28), label: "Home"),
-              BottomNavigationBarItem(icon: Icon(Icons.shopping_cart, size: 28), label: "Products"),
-              BottomNavigationBarItem(icon: Icon(Icons.supervised_user_circle, size: 28), label: "Users"),
+              BottomNavigationBarItem(icon: Icon(Icons.menu, size: 28), label: "Products"),
               BottomNavigationBarItem(icon: Icon(Icons.lock, size: 28), label: "Profile"),
             ],
           ),
