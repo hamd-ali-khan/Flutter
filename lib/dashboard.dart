@@ -212,7 +212,7 @@ class _DashboardState extends State<Dashboard> {
 
             items: const [
               BottomNavigationBarItem(icon: Icon(Icons.home, size: 28), label: "Home"),
-              BottomNavigationBarItem(icon: Icon(Icons.shopping_cart, size: 28), label: "Products"),
+              BottomNavigationBarItem(icon: Icon(Icons.shopping_cart, size: 28), label: "Items"),
               BottomNavigationBarItem(icon: Icon(Icons.supervised_user_circle, size: 28), label: "Users"),
               BottomNavigationBarItem(icon: Icon(Icons.lock, size: 28), label: "Profile"),
             ],

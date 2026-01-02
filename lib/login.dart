@@ -12,11 +12,11 @@ class Login extends StatefulWidget {
   State<Login> createState() => _LoginState();
 }
 
-bool _obscurePassword = true;
-
 class _LoginState extends State<Login> {
   final TextEditingController emailController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
+  bool _obscurePassword = true;
+  bool _isLoading = false; // Added loading state
 
   @override
   void initState() {
@@ -24,22 +24,18 @@ class _LoginState extends State<Login> {
     checkLoginStatus();
   }
 
-  //  CHECK IF USER IS ALREADY LOGGED IN
+  // CHECK IF USER IS ALREADY LOGGED IN
   void checkLoginStatus() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
-
-
     int? roleId = prefs.getInt('role_id');
 
     if (roleId != null) {
       if (roleId == 1) {
-        // Admin
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (_) => const Dashboard()),
         );
       } else {
-        // Normal User
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (_) => const UserDashboard()),
@@ -54,14 +50,13 @@ class _LoginState extends State<Login> {
     String password = passwordController.text.trim();
 
     if (email.isEmpty || password.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("Please enter email and password"),
-          backgroundColor: Colors.red,
-        ),
-      );
+      _showSnackBar("Please enter email and password");
       return;
     }
+
+    setState(() {
+      _isLoading = true; // start loader
+    });
 
     final url = Uri.parse("http://192.168.10.6:8000/api/login");
 
@@ -72,26 +67,22 @@ class _LoginState extends State<Login> {
           "Content-Type": "application/json",
           "Accept": "application/json",
         },
-        body: jsonEncode({
-          "email": email,
-          "password": password,
-        }),
+        body: jsonEncode({"email": email, "password": password}),
       );
+
+      setState(() {
+        _isLoading = false; // stop loader
+      });
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-
-        // CHANGED: Safe extraction with null handling
         String token = data['token'] ?? '';
-
         final user = data['user'];
-
         int userId = user['id'];
         int roleId = user['role_id'];
         String name = user['name'] ?? '';
         String userEmail = user['email'] ?? '';
 
-        // SAVE DATA IN SHARED PREFERENCES
         SharedPreferences prefs = await SharedPreferences.getInstance();
         await prefs.setString('token', token);
         await prefs.setInt('user_id', userId);
@@ -99,7 +90,7 @@ class _LoginState extends State<Login> {
         await prefs.setString('name', name);
         await prefs.setString('email', userEmail);
 
-        // NAVIGATION BASED ON ROLE_ID
+        // Navigate based on role
         if (roleId == 1) {
           Navigator.pushReplacement(
             context,
@@ -112,21 +103,46 @@ class _LoginState extends State<Login> {
           );
         }
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text("Invalid email or password"),
-            backgroundColor: Colors.red,
-          ),
-        );
+        _showSnackBar("Invalid email or password");
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text("Network Error: $e"),
-          backgroundColor: Colors.red,
-        ),
-      );
+      setState(() {
+        _isLoading = false; // stop loader
+      });
+      _showSnackBar("Network Error: $e");
     }
+  }
+
+  // HELPER FUNCTION TO SHOW SNACKBAR
+  void _showSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        behavior: SnackBarBehavior.floating,
+        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+        backgroundColor: Colors.red.shade600,
+        content: Row(
+          children: [
+            const Icon(Icons.error_outline, color: Colors.white),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                message,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+          ],
+        ),
+        duration: const Duration(seconds: 3),
+      ),
+    );
   }
 
   @override
@@ -194,10 +210,10 @@ class _LoginState extends State<Login> {
                         borderRadius: BorderRadius.circular(12),
                       ),
                     ),
-                    onPressed: login,
-                    child: const Text(
-                      "Login",
-                      style: TextStyle(
+                    onPressed: _isLoading ? null : login,
+                    child: Text(
+                      _isLoading ? "Please wait..." : "Login",
+                      style: const TextStyle(
                         color: Colors.white,
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
@@ -205,6 +221,7 @@ class _LoginState extends State<Login> {
                     ),
                   ),
                 ),
+
               ],
             ),
           ),
