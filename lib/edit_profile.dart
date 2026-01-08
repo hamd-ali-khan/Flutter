@@ -1,4 +1,7 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:my_app/apis/api_services.dart';
 
 class EditProfileScreen extends StatefulWidget {
   const EditProfileScreen({super.key});
@@ -11,222 +14,220 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   bool _showOldPassword = false;
   bool _showNewPassword = false;
 
+  final TextEditingController _firstNameController = TextEditingController();
+  final TextEditingController _lastNameController = TextEditingController();
+  final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _oldPasswordController = TextEditingController();
+  final TextEditingController _newPasswordController = TextEditingController();
+
+  File? _imageFile; // Selected profile image
+  late Future<Map<String, dynamic>> _profileFuture;
+  bool _isUpdating = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _profileFuture = fetchProfile();
+  }
+
+  // Fetch profile data
+  Future<Map<String, dynamic>> fetchProfile() async {
+    final data = await ApiService.get("profile");
+
+    // Auto-fill text controllers
+    final nameParts = (data['name'] as String).split(" ");
+    _firstNameController.text = nameParts.first;
+    _lastNameController.text = nameParts.length > 1 ? nameParts.sublist(1).join(" ") : "";
+    _emailController.text = data['email'];
+
+    return data;
+  }
+
+  Future<void> _pickImage() async {
+    final picker = ImagePicker();
+    final picked = await picker.pickImage(source: ImageSource.gallery);
+    if (picked != null) {
+      setState(() {
+        _imageFile = File(picked.path);
+      });
+    }
+  }
+
+  Future<void> _updateProfile() async {
+    setState(() {
+      _isUpdating = true;
+    });
+
+    try {
+      final fields = {
+        "first_name": _firstNameController.text.trim(),
+        "last_name": _lastNameController.text.trim(),
+        "email": _emailController.text.trim(),
+      };
+
+      // Add password fields if filled
+      if (_oldPasswordController.text.isNotEmpty && _newPasswordController.text.isNotEmpty) {
+        fields["old_password"] = _oldPasswordController.text.trim();
+        fields["new_password"] = _newPasswordController.text.trim();
+      }
+
+      final response = await ApiService.uploadProfile(fields, _imageFile);
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(response['message'] ?? "Profile updated successfully")),
+      );
+
+      // Refresh profile after update
+      setState(() {
+        _profileFuture = fetchProfile();
+      });
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Update failed: $e")),
+      );
+    } finally {
+      setState(() {
+        _isUpdating = false;
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _firstNameController.dispose();
+    _lastNameController.dispose();
+    _emailController.dispose();
+    _oldPasswordController.dispose();
+    _newPasswordController.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
+        title: const Text("Edit Profile"),
         centerTitle: true,
-        title: const Text(
-          "Edit Profile",
-          style: TextStyle(color: Color(0xFF757575)),
-        ),
+        backgroundColor: Colors.white,
+        foregroundColor: Colors.black,
+        elevation: 0,
       ),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: Column(
-            children: [
-              const SizedBox(height: 16),
-              const ProfilePic(isShowPhotoUpload: true),
-              const SizedBox(height: 24),
-              EditProfileForm(
-                showOldPassword: _showOldPassword,
-                showNewPassword: _showNewPassword,
-                onOldPasswordToggle: () {
-                  setState(() {
-                    _showOldPassword = !_showOldPassword;
-                  });
-                },
-                onNewPasswordToggle: () {
-                  setState(() {
-                    _showNewPassword = !_showNewPassword;
-                  });
-                },
-              ),
+      body: FutureBuilder<Map<String, dynamic>>(
+        future: _profileFuture,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
 
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
+          if (snapshot.hasError) {
+            return Center(
+              child: Text(snapshot.error.toString(), style: const TextStyle(color: Colors.red)),
+            );
+          }
 
-// Profile picture with camera overlay
-class ProfilePic extends StatelessWidget {
-  const ProfilePic({
-    super.key,
-    this.isShowPhotoUpload = false,
-    this.imageUploadBtnPress,
-  });
+          final data = snapshot.data!;
+          final String? profileImageUrl = data['profile_photo_url'];
 
-  final bool isShowPhotoUpload;
-  final VoidCallback? imageUploadBtnPress;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(16.0),
-      margin: const EdgeInsets.symmetric(vertical: 16.0),
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        border: Border.all(color: Colors.grey.withOpacity(0.3)),
-      ),
-      child: Stack(
-        alignment: Alignment.bottomRight,
-        children: [
-          const CircleAvatar(
-            radius: 50,
-            backgroundColor: Colors.grey,
-            child: Icon(Icons.person, size: 50, color: Colors.white),
-          ),
-          if (isShowPhotoUpload)
-            InkWell(
-              onTap: imageUploadBtnPress,
-              child: const CircleAvatar(
-                radius: 15,
-                backgroundColor: Colors.blueAccent,
-                child: Icon(Icons.camera_alt, color: Colors.white, size: 18),
-              ),
+          return SingleChildScrollView(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              children: [
+                const SizedBox(height: 16),
+                Stack(
+                  alignment: Alignment.bottomRight,
+                  children: [
+                    CircleAvatar(
+                      radius: 55,
+                      backgroundColor: Colors.grey[300],
+                      backgroundImage: _imageFile != null
+                          ? FileImage(_imageFile!) as ImageProvider
+                          : (profileImageUrl != null ? NetworkImage(profileImageUrl) : null),
+                      child: (_imageFile == null && profileImageUrl == null)
+                          ? const Icon(Icons.person, size: 55)
+                          : null,
+                    ),
+                    InkWell(
+                      onTap: _pickImage,
+                      child: const CircleAvatar(
+                        radius: 16,
+                        backgroundColor: Colors.blueAccent,
+                        child: Icon(Icons.camera_alt, size: 18, color: Colors.white),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 24),
+                TextFormField(
+                  controller: _firstNameController,
+                  decoration: InputDecoration(
+                    prefixIcon: const Icon(Icons.person),
+                    labelText: "First Name",
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(50)),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: _lastNameController,
+                  decoration: InputDecoration(
+                    prefixIcon: const Icon(Icons.person),
+                    labelText: "Last Name",
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(50)),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: _emailController,
+                  keyboardType: TextInputType.emailAddress,
+                  decoration: InputDecoration(
+                    prefixIcon: const Icon(Icons.email),
+                    labelText: "Email",
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(50)),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: _oldPasswordController,
+                  obscureText: !_showOldPassword,
+                  decoration: InputDecoration(
+                    prefixIcon: const Icon(Icons.lock),
+                    labelText: "Old Password",
+                    suffixIcon: IconButton(
+                      icon: Icon(_showOldPassword ? Icons.visibility : Icons.visibility_off),
+                      onPressed: () => setState(() => _showOldPassword = !_showOldPassword),
+                    ),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(50)),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: _newPasswordController,
+                  obscureText: !_showNewPassword,
+                  decoration: InputDecoration(
+                    prefixIcon: const Icon(Icons.lock),
+                    labelText: "New Password",
+                    suffixIcon: IconButton(
+                      icon: Icon(_showNewPassword ? Icons.visibility : Icons.visibility_off),
+                      onPressed: () => setState(() => _showNewPassword = !_showNewPassword),
+                    ),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(50)),
+                  ),
+                ),
+                const SizedBox(height: 24),
+                ElevatedButton(
+                  onPressed: _isUpdating ? null : _updateProfile,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.blueAccent,
+                    foregroundColor: Colors.white,
+                    minimumSize: const Size(double.infinity, 48),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                  child: Text(_isUpdating ? "Updating..." : "Update Profile"),
+                ),
+              ],
             ),
-        ],
-      ),
-    );
-  }
-}
-
-// Rounded input field with optional icon and password toggle
-class RoundedInputField extends StatelessWidget {
-  const RoundedInputField({
-    super.key,
-    required this.label,
-    required this.hintText,
-    required this.icon,
-    this.keyboardType,
-    this.obscureText = false,
-    this.suffixIcon,
-  });
-
-  final String label;
-  final String hintText;
-  final IconData icon;
-  final TextInputType? keyboardType;
-  final bool obscureText;
-  final Widget? suffixIcon;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 12.0),
-      child: TextFormField(
-        keyboardType: keyboardType,
-        obscureText: obscureText,
-        decoration: InputDecoration(
-          prefixIcon: Icon(icon, color: Colors.grey),
-          suffixIcon: suffixIcon,
-          labelText: label,
-          hintText: hintText,
-          floatingLabelBehavior: FloatingLabelBehavior.always,
-          filled: true,
-          fillColor: Colors.white,
-          contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(50),
-            borderSide: const BorderSide(color: Colors.grey, width: 1),
-          ),
-          enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(50),
-            borderSide: const BorderSide(color: Colors.grey, width: 1),
-          ),
-          focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(50),
-            borderSide: const BorderSide(color: Colors.blueAccent, width: 2),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-// Form for editing profile
-class EditProfileForm extends StatelessWidget {
-  const EditProfileForm({
-    super.key,
-    required this.showOldPassword,
-    required this.showNewPassword,
-    required this.onOldPasswordToggle,
-    required this.onNewPasswordToggle,
-  });
-
-  final bool showOldPassword;
-  final bool showNewPassword;
-  final VoidCallback onOldPasswordToggle;
-  final VoidCallback onNewPasswordToggle;
-
-  @override
-  Widget build(BuildContext context) {
-    return Form(
-      child: Column(
-        children: [
-          const RoundedInputField(
-            label: "First Name",
-            hintText: "Enter your first name",
-            icon: Icons.person,
-          ),
-          const RoundedInputField(
-            label: "Last Name",
-            hintText: "Enter your last name",
-            icon: Icons.person,
-          ),
-          const RoundedInputField(
-            label: "Email",
-            hintText: "Enter your email",
-            icon: Icons.email,
-            keyboardType: TextInputType.emailAddress,
-          ),
-          RoundedInputField(
-            label: "Old Password",
-            hintText: "Enter old password",
-            icon: Icons.lock,
-            obscureText: !showOldPassword,
-            suffixIcon: InkWell(
-              onTap: onOldPasswordToggle,
-              child: Icon(
-                showOldPassword ? Icons.visibility : Icons.visibility_off,
-                color: Colors.grey,
-              ),
-            ),
-          ),
-          RoundedInputField(
-            label: "New Password",
-            hintText: "Enter new password",
-            icon: Icons.lock,
-            obscureText: !showNewPassword,
-            suffixIcon: InkWell(
-              onTap: onNewPasswordToggle,
-              child: Icon(
-                showNewPassword ? Icons.visibility : Icons.visibility_off,
-                color: Colors.grey,
-              ),
-            ),
-          ),
-          const SizedBox(height: 16),
-          ElevatedButton(
-            onPressed: () {},
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.blueAccent,
-              foregroundColor: Colors.white,
-              minimumSize: const Size(double.infinity, 48),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-            ),
-            child: const Text("Update Profile"),
-          )
-        ],
+          );
+        },
       ),
     );
   }

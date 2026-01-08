@@ -3,6 +3,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'edit_profile.dart';
 import 'product.dart';
 import '/login.dart';
+import 'profile.dart';
 
 class Dashboard extends StatefulWidget {
   const Dashboard({super.key});
@@ -22,7 +23,7 @@ class _DashboardState extends State<Dashboard> {
     Center(child: Text("Home Page", style: TextStyle(fontSize: 22))),
     // Center(child: Text("Products Page", style: TextStyle(fontSize: 22))),
     Center(child: Text("Users Page", style: TextStyle(fontSize: 22))),
-    Center(child: Text("Profile Page", style: TextStyle(fontSize: 22))),
+    // Center(child: Text("Profile Page", style: TextStyle(fontSize: 22))),
   ];
 
   @override
@@ -90,9 +91,9 @@ class _DashboardState extends State<Dashboard> {
                     );
                   },
                   child: const CircleAvatar(
-                    radius: 20,
-                    child: Icon(Icons.person),
-                  ),
+                  radius: 20,
+                  child: Icon(Icons.person),
+                ),
                 ),
               ),
             ],
@@ -186,14 +187,25 @@ class _DashboardState extends State<Dashboard> {
             elevation: 0,
             onTap: (index) {
               if (index == 1) {
-                // PRODUCTS → OPEN NEW SCREEN
+                // ITEMS → new screen
                 Navigator.push(
                   context,
                   MaterialPageRoute(
                     builder: (_) => const BakerProductPage(),
                   ),
                 );
-              } else {
+              }
+              else if (index == 3) {
+                // PROFILE → new screen ✅
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const ProfileScreen(),
+                  ),
+                );
+              }
+              else {
+                // HOME & USERS stay in dashboard body
                 setState(() {
                   _selectedBottomIndex = index;
 
@@ -201,8 +213,6 @@ class _DashboardState extends State<Dashboard> {
                     _currentIndex = 0; // Home
                   } else if (index == 2) {
                     _currentIndex = 1; // Users
-                  } else if (index == 3) {
-                    _currentIndex = 2; // Profile
                   }
                 });
               }
@@ -210,11 +220,12 @@ class _DashboardState extends State<Dashboard> {
 
 
 
+
             items: const [
               BottomNavigationBarItem(icon: Icon(Icons.home, size: 28), label: "Home"),
               BottomNavigationBarItem(icon: Icon(Icons.shopping_cart, size: 28), label: "Items"),
               BottomNavigationBarItem(icon: Icon(Icons.supervised_user_circle, size: 28), label: "Users"),
-              BottomNavigationBarItem(icon: Icon(Icons.lock, size: 28), label: "Profile"),
+              BottomNavigationBarItem(icon: Icon(Icons.person, size: 28), label: "Profile"),
             ],
           ),
         ),

@@ -4,6 +4,7 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import '/dashboard.dart';
 import '/user_dashboard.dart';
+import 'utils/token_storage.dart'; // <-- import here
 
 class Login extends StatefulWidget {
   const Login({super.key});
@@ -16,7 +17,7 @@ class _LoginState extends State<Login> {
   final TextEditingController emailController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
   bool _obscurePassword = true;
-  bool _isLoading = false; // Added loading state
+  bool _isLoading = false;
 
   @override
   void initState() {
@@ -24,7 +25,7 @@ class _LoginState extends State<Login> {
     checkLoginStatus();
   }
 
-  // CHECK IF USER IS ALREADY LOGGED IN
+  // Check if already logged in
   void checkLoginStatus() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     int? roleId = prefs.getInt('role_id');
@@ -44,7 +45,7 @@ class _LoginState extends State<Login> {
     }
   }
 
-  // API LOGIN FUNCTION
+  // Login API
   void login() async {
     String email = emailController.text.trim();
     String password = passwordController.text.trim();
@@ -55,10 +56,10 @@ class _LoginState extends State<Login> {
     }
 
     setState(() {
-      _isLoading = true; // start loader
+      _isLoading = true;
     });
 
-    final url = Uri.parse("http://192.168.10.6:8000/api/login");
+    final url = Uri.parse("http://192.168.10.8:8000/api/login");
 
     try {
       final response = await http.post(
@@ -71,7 +72,7 @@ class _LoginState extends State<Login> {
       );
 
       setState(() {
-        _isLoading = false; // stop loader
+        _isLoading = false;
       });
 
       if (response.statusCode == 200) {
@@ -83,8 +84,11 @@ class _LoginState extends State<Login> {
         String name = user['name'] ?? '';
         String userEmail = user['email'] ?? '';
 
+        // Save token in shared preferences using TokenStorage
+        await TokenStorage.saveToken(token);
+
+        // Save other user info in SharedPreferences
         SharedPreferences prefs = await SharedPreferences.getInstance();
-        await prefs.setString('token', token);
         await prefs.setInt('user_id', userId);
         await prefs.setInt('role_id', roleId);
         await prefs.setString('name', name);
@@ -107,13 +111,12 @@ class _LoginState extends State<Login> {
       }
     } catch (e) {
       setState(() {
-        _isLoading = false; // stop loader
+        _isLoading = false;
       });
       _showSnackBar("Network Error: $e");
     }
   }
 
-  // HELPER FUNCTION TO SHOW SNACKBAR
   void _showSnackBar(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -221,7 +224,6 @@ class _LoginState extends State<Login> {
                     ),
                   ),
                 ),
-
               ],
             ),
           ),
