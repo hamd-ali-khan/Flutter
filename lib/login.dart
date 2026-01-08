@@ -1,10 +1,9 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import '/dashboard.dart';
 import '/user_dashboard.dart';
-import 'utils/token_storage.dart'; // <-- import here
+import '../apis/api_services.dart';
+import '../utils/token_storage.dart';
 
 class Login extends StatefulWidget {
   const Login({super.key});
@@ -22,31 +21,36 @@ class _LoginState extends State<Login> {
   @override
   void initState() {
     super.initState();
-    checkLoginStatus();
+    _checkLoginStatus();
   }
 
   // Check if already logged in
-  void checkLoginStatus() async {
+  void _checkLoginStatus() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     int? roleId = prefs.getInt('role_id');
 
     if (roleId != null) {
-      if (roleId == 1) {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (_) => const Dashboard()),
-        );
-      } else {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (_) => const UserDashboard()),
-        );
-      }
+      _navigateToDashboard(roleId);
     }
   }
 
-  // Login API
-  void login() async {
+  // Navigate based on role
+  void _navigateToDashboard(int roleId) {
+    if (roleId == 1) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => const Dashboard()),
+      );
+    } else {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => const UserDashboard()),
+      );
+    }
+  }
+
+  // Login API using ApiService
+  void _login() async {
     String email = emailController.text.trim();
     String password = passwordController.text.trim();
 
@@ -55,77 +59,48 @@ class _LoginState extends State<Login> {
       return;
     }
 
-    setState(() {
-      _isLoading = true;
-    });
-
-    final url = Uri.parse("http://192.168.10.8:8000/api/login");
+    setState(() => _isLoading = true);
 
     try {
-      final response = await http.post(
-        url,
-        headers: {
-          "Content-Type": "application/json",
-          "Accept": "application/json",
-        },
-        body: jsonEncode({"email": email, "password": password}),
-      );
-
-      setState(() {
-        _isLoading = false;
+      final data = await ApiService.post("login", {
+        "email": email,
+        "password": password,
       });
 
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        String token = data['token'] ?? '';
-        final user = data['user'];
-        int userId = user['id'];
-        int roleId = user['role_id'];
-        String name = user['name'] ?? '';
-        String userEmail = user['email'] ?? '';
+      // Save token
+      String token = data['token'] ?? '';
+      await TokenStorage.saveToken(token);
 
-        // Save token in shared preferences using TokenStorage
-        await TokenStorage.saveToken(token);
+      // Save user info
+      final user = data['user'];
+      int userId = user['id'];
+      int roleId = user['role_id'];
+      String name = user['name'] ?? '';
+      String userEmail = user['email'] ?? '';
 
-        // Save other user info in SharedPreferences
-        SharedPreferences prefs = await SharedPreferences.getInstance();
-        await prefs.setInt('user_id', userId);
-        await prefs.setInt('role_id', roleId);
-        await prefs.setString('name', name);
-        await prefs.setString('email', userEmail);
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      await prefs.setInt('user_id', userId);
+      await prefs.setInt('role_id', roleId);
+      await prefs.setString('name', name);
+      await prefs.setString('email', userEmail);
 
-        // Navigate based on role
-        if (roleId == 1) {
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(builder: (_) => const Dashboard()),
-          );
-        } else {
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(builder: (_) => const UserDashboard()),
-          );
-        }
-      } else {
-        _showSnackBar("Invalid email or password");
-      }
+      // Navigate based on role
+      _navigateToDashboard(roleId);
     } catch (e) {
-      setState(() {
-        _isLoading = false;
-      });
-      _showSnackBar("Network Error: $e");
+      _showSnackBar("Login failed: $e");
+    } finally {
+      setState(() => _isLoading = false);
     }
   }
 
+  // Show error message
   void _showSnackBar(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         behavior: SnackBarBehavior.floating,
         margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         backgroundColor: Colors.red.shade600,
         content: Row(
           children: [
@@ -135,10 +110,7 @@ class _LoginState extends State<Login> {
               child: Text(
                 message,
                 style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 16,
-                  fontWeight: FontWeight.w500,
-                ),
+                    color: Colors.white, fontSize: 16, fontWeight: FontWeight.w500),
               ),
             ),
           ],
@@ -155,9 +127,7 @@ class _LoginState extends State<Login> {
         child: Card(
           elevation: 10,
           margin: const EdgeInsets.symmetric(horizontal: 24),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           child: Padding(
             padding: const EdgeInsets.all(20),
             child: Column(
@@ -173,9 +143,7 @@ class _LoginState extends State<Login> {
                   decoration: InputDecoration(
                     labelText: "Email",
                     prefixIcon: const Icon(Icons.email),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
                   ),
                 ),
                 const SizedBox(height: 20),
@@ -187,19 +155,12 @@ class _LoginState extends State<Login> {
                     prefixIcon: const Icon(Icons.lock),
                     suffixIcon: IconButton(
                       icon: Icon(
-                        _obscurePassword
-                            ? Icons.visibility_off
-                            : Icons.visibility,
-                      ),
+                          _obscurePassword ? Icons.visibility_off : Icons.visibility),
                       onPressed: () {
-                        setState(() {
-                          _obscurePassword = !_obscurePassword;
-                        });
+                        setState(() => _obscurePassword = !_obscurePassword);
                       },
                     ),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
                   ),
                 ),
                 const SizedBox(height: 20),
@@ -209,18 +170,13 @@ class _LoginState extends State<Login> {
                   child: ElevatedButton(
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.blueAccent,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     ),
-                    onPressed: _isLoading ? null : login,
+                    onPressed: _isLoading ? null : _login,
                     child: Text(
                       _isLoading ? "Please wait..." : "Login",
                       style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
+                          color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
                     ),
                   ),
                 ),

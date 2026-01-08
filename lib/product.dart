@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:my_app/dashboard.dart';
 
 class BakerProductPage extends StatefulWidget {
   const BakerProductPage({super.key});
@@ -17,103 +18,156 @@ class _BakerProductPageState extends State<BakerProductPage> {
     {"name": "Cake", "price": 850, "qty": 0, "image": "images/img.png"},
     {"name": "Cookies", "price": 300, "qty": 0, "image": "images/img_1.png"},
     {"name": "Pastry", "price": 250, "qty": 0, "image": "images/img_2.png"},
-    {"name": "Bread", "price": 120, "qty": 0, "image": "images/img_3.png"},
-    {"name": "Cake", "price": 850, "qty": 0, "image": "images/img.png"},
-    {"name": "Cookies", "price": 300, "qty": 0, "image": "images/img_1.png"},
-    {"name": "Pastry", "price": 250, "qty": 0, "image": "images/img_2.png"},
-    {"name": "Bread", "price": 120, "qty": 0, "image": "images/img_3.png"},
-    {"name": "Cake", "price": 850, "qty": 0, "image": "images/img.png"},
-    {"name": "Cookies", "price": 300, "qty": 0, "image": "images/img_1.png"},
     {"name": "Pastry", "price": 250, "qty": 0, "image": "images/img_2.png"},
   ];
 
-  int get totalItems {
-    return products.fold(0, (sum, item) => sum + item["qty"] as int);
+  int get totalItems =>
+      products.fold<int>(0, (sum, item) => sum + item["qty"] as int);
+
+  int get totalPrice => products.fold<int>(
+    0,
+        (sum, item) => sum + (item["qty"] * item["price"]) as int,
+  );
+
+  // ================= LOADER =================
+  void _showLoader() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const Center(
+        child: CircularProgressIndicator(),
+      ),
+    );
+  }
+
+  // ================= SAVE ACTION =================
+  void _save() async {
+    if (totalItems == 0) return;
+
+    _showLoader();
+
+    await Future.delayed(const Duration(seconds: 2)); // simulate save
+
+    // reset quantities
+    setState(() {
+      for (var product in products) {
+        product["qty"] = 0;
+      }
+    });
+
+    Navigator.pop(context); // close loader
+
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(
+        builder: (_) => const Dashboard(),
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: const Color(0xFFF8F9FB),
+
+      // ================= APP BAR =================
       appBar: AppBar(
+        title: const Text("Bakery Products"),
         centerTitle: true,
         backgroundColor: Colors.white,
-        elevation: 0,
-        iconTheme: const IconThemeData(color: Colors.black),
-        title: const Text(
-          "Bakery Products",
-          style: TextStyle(color: Color(0xFF757575)),
+        foregroundColor: Colors.black,
+        elevation: 2,
+      ),
+
+      // ================= PRODUCT LIST =================
+      body: ListView.builder(
+        padding: const EdgeInsets.fromLTRB(12, 12, 12, 100),
+        itemCount: products.length,
+        itemBuilder: (context, index) {
+          return _productCard(products[index]);
+        },
+      ),
+
+      // ================= BOTTOM BAR =================
+      bottomNavigationBar: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          boxShadow: [
+            BoxShadow(color: Colors.black12, blurRadius: 8),
+          ],
         ),
-      ),
-      // Product list
-      body: ListView(
-        padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 12),
-        children: [
-          ...products.map((product) => _productCard(product)).toList(),
-          const SizedBox(
-              height: 100), // extra space so last product is not hidden
-        ],
-      ),
-      // Fixed Total Items at bottom
-      bottomNavigationBar: Padding(
-        padding: const EdgeInsets.only(left: 16, right: 16, bottom: 16),
-        child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
-          decoration: BoxDecoration(
-            color: Colors.deepPurple.withOpacity(0.1), // transparent background
-            borderRadius: BorderRadius.circular(20), // rounded corners
-            border: Border.all(
-              color: Colors.deepPurple.shade200.withOpacity(0.5),
-              width: 2,
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.grey.shade400.withOpacity(0.3),
-                blurRadius: 8,
-                spreadRadius: 2,
-                offset: const Offset(0, 3),
+        child: Row(
+          children: [
+            Expanded(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    "$totalItems items selected",
+                    style: const TextStyle(color: Colors.black54),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    "Rs: $totalPrice/-",
+                    style: const TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
               ),
-            ],
-          ),
-          child: Text(
-            "Total Items: $totalItems",
-            style: const TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              color: Colors.black87,
             ),
-            textAlign: TextAlign.center,
-          ),
+            ElevatedButton(
+              onPressed: totalItems == 0 ? null : _save,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.blue,                 // enabled
+                // shadow when disabled
+                padding: const EdgeInsets.symmetric(horizontal: 26, vertical: 14),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                ),
+              ),
+              child: const Text(
+                "Save",
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            )
+
+          ],
         ),
       ),
     );
   }
 
+  // ================= PRODUCT CARD =================
   Widget _productCard(Map<String, dynamic> product) {
     return Container(
-      margin: const EdgeInsets.symmetric(vertical: 6),
-      padding: const EdgeInsets.all(20),
+      margin: const EdgeInsets.only(bottom: 14),
+      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.grey.shade300, width: 2),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.shade300,
-            spreadRadius: 2,
-            blurRadius: 5,
-            offset: const Offset(3, 3),
-          ),
+        boxShadow: const [
+          BoxShadow(color: Colors.black12, blurRadius: 10),
         ],
       ),
       child: Row(
         children: [
-          CircleAvatar(
-            radius: 30,
-            backgroundColor: Colors.transparent,
-            backgroundImage: AssetImage(product["image"]),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(12),
+            child: Image.asset(
+              product["image"],
+              height: 64,
+              width: 64,
+              fit: BoxFit.cover,
+            ),
           ),
-          const SizedBox(width: 16),
+          const SizedBox(width: 14),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -121,51 +175,54 @@ class _BakerProductPageState extends State<BakerProductPage> {
                 Text(
                   product["name"],
                   style: const TextStyle(
-                      fontSize: 18, fontWeight: FontWeight.bold),
+                      fontSize: 17, fontWeight: FontWeight.w600),
                 ),
-                const SizedBox(height: 3),
+                const SizedBox(height: 6),
                 Text(
                   "Rs: ${product["price"]}/-",
-                  style: const TextStyle(fontSize: 16, color: Colors.black54),
+                  style: const TextStyle(color: Colors.black54),
                 ),
               ],
             ),
           ),
-          Row(
-            children: [
-              _qtyButton(
-                icon: Icons.remove,
-                onTap: () {
-                  setState(() {
-                    if (product["qty"] > 0) product["qty"]--;
-                  });
-                },
-              ),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 8),
-                child: Text(
-                  "${product["qty"]}",
-                  style: const TextStyle(fontSize: 16),
-                ),
-              ),
-              _qtyButton(
-                icon: Icons.add,
-                onTap: () {
-                  setState(() {
-                    product["qty"]++;
-                  });
-                },
-              ),
-            ],
-          ),
+          _quantitySelector(product),
         ],
       ),
     );
   }
 
-  Widget _qtyButton({required IconData icon, required VoidCallback onTap}) {
+  // ================= QTY SELECTOR =================
+  Widget _quantitySelector(Map<String, dynamic> product) {
+    return Row(
+      children: [
+        _qtyButton(
+          icon: Icons.remove,
+          enabled: product["qty"] > 0,
+          onTap: () => setState(() => product["qty"]--),
+        ),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 10),
+          child: Text(
+            "${product["qty"]}",
+            style: const TextStyle(fontWeight: FontWeight.w600),
+          ),
+        ),
+        _qtyButton(
+          icon: Icons.add,
+          enabled: true,
+          onTap: () => setState(() => product["qty"]++),
+        ),
+      ],
+    );
+  }
+
+  Widget _qtyButton({
+    required IconData icon,
+    required VoidCallback onTap,
+    required bool enabled,
+  }) {
     return InkWell(
-      onTap: onTap,
+      onTap: enabled ? onTap : null,
       borderRadius: BorderRadius.circular(8),
       child: Container(
         padding: const EdgeInsets.all(6),
