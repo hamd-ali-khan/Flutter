@@ -13,8 +13,8 @@ class Dashboard extends StatefulWidget {
 }
 
 class _DashboardState extends State<Dashboard> {
-  int _currentIndex = 0; // Tracks body page
-  int _selectedBottomIndex = 0; // Tracks bottom nav selected
+  int _currentIndex = 0;
+  int _selectedBottomIndex = 0;
   String userName = '';
   String userEmail = '';
 
@@ -47,9 +47,7 @@ class _DashboardState extends State<Dashboard> {
     );
   }
 
-  // =========================
   // Home Page
-  // =========================
   Widget buildHomePage() {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
@@ -93,7 +91,7 @@ class _DashboardState extends State<Dashboard> {
               actionCard("View Users", Icons.supervised_user_circle, Colors.orangeAccent, () {
                 setState(() {
                   _currentIndex = 1;
-                  _selectedBottomIndex = 2; // Highlight Users in bottom nav
+                  _selectedBottomIndex = 2;
                 });
               }),
               actionCard("Reports", Icons.bar_chart, Colors.green, () {
@@ -109,9 +107,7 @@ class _DashboardState extends State<Dashboard> {
     );
   }
 
-  // =========================
   // Summary Card Widget
-  // =========================
   Widget summaryCard(String title, String count, IconData icon, Color iconColor) {
     return Container(
       padding: const EdgeInsets.all(16),
@@ -149,9 +145,7 @@ class _DashboardState extends State<Dashboard> {
     );
   }
 
-  // =========================
   // Action Card Widget
-  // =========================
   Widget actionCard(String title, IconData icon, Color iconColor, VoidCallback onTap) {
     return GestureDetector(
       onTap: onTap,
@@ -184,23 +178,17 @@ class _DashboardState extends State<Dashboard> {
     );
   }
 
-  // =========================
   // Users Page Placeholder
-  // =========================
   Widget buildUsersPage() {
     return const Center(child: Text("Users Page", style: TextStyle(fontSize: 22)));
   }
 
-  // =========================
   // Profile Page Placeholder
-  // =========================
   Widget buildProfilePage() {
     return const ProfileScreen();
   }
 
-  // =========================
   // Main Build
-  // =========================
   @override
   Widget build(BuildContext context) {
     Widget body;

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'edit_profile.dart';
-import '../apis/api_services.dart'; // import ApiService
+import '../apis/api_services.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -105,12 +105,26 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   onPressed: () {
                     Navigator.push(
                       context,
-                      MaterialPageRoute(
-                          builder: (_) => const EditProfileScreen()),
+                      MaterialPageRoute(builder: (_) => const EditProfileScreen()),
                     );
                   },
-                  child: const Text("Edit Profile"),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.blueAccent,
+                    foregroundColor: Colors.white,
+                    minimumSize: const Size(double.infinity, 48),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  child: const Text(
+                    "Edit Profile",
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
                 ),
+
               ],
             ),
           );
