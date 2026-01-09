@@ -222,8 +222,15 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                     minimumSize: const Size(double.infinity, 48),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   ),
-                  child: Text(_isUpdating ? "Updating..." : "Update Profile"),
-                ),
+                  child: Text(
+                    _isUpdating ? "Updating..." : "Update Profile",
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                )
+
               ],
             ),
           );

@@ -6,21 +6,17 @@ import 'dashboard.dart';
 class BakerProductPage extends StatefulWidget {
   const BakerProductPage({super.key});
 
-  // ✅ Expose total products count for dashboard
+  //  Expose total products count for dashboard
   static int get totalProductsCount => _products.length;
 
-  // ================= PRODUCT LIST =================
+  // PRODUCT LIST
   static final List<Map<String, dynamic>> _products = [
-    {"name": "Bread", "price": 120, "qty": 0, "image": "images/img_3.png"},
-    {"name": "Cake", "price": 850, "qty": 0, "image": "images/img.png"},
-    {"name": "Cookies", "price": 300, "qty": 0, "image": "images/img_1.png"},
-    {"name": "Pastry", "price": 250, "qty": 0, "image": "images/img_2.png"},
-    {"name": "Bread", "price": 120, "qty": 0, "image": "images/img_3.png"},
-    {"name": "Cake", "price": 850, "qty": 0, "image": "images/img.png"},
-    {"name": "Cookies", "price": 300, "qty": 0, "image": "images/img_1.png"},
-    {"name": "Pastry", "price": 250, "qty": 0, "image": "images/img_2.png"},
-    {"name": "Pastry", "price": 250, "qty": 0, "image": "images/img_2.png"},
+    {"id": 1, "name": "Bread", "price": 120, "qty": 0, "image": "images/img_3.png"},
+    {"id": 2, "name": "Cake", "price": 850, "qty": 0, "image": "images/img.png"},
+    {"id": 3, "name": "Cookies", "price": 300, "qty": 0, "image": "images/img_1.png"},
+    {"id": 4, "name": "Pastry", "price": 250, "qty": 0, "image": "images/img_2.png"},
   ];
+
 
   @override
   State<BakerProductPage> createState() => _BakerProductPageState();
@@ -41,6 +37,7 @@ class _BakerProductPageState extends State<BakerProductPage> {
       builder: (_) => const Center(child: CircularProgressIndicator()),
     );
   }
+
 
   void _save() async {
     if (totalItems == 0) return;

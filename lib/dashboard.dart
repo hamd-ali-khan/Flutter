@@ -43,6 +43,26 @@ class _DashboardState extends State<Dashboard> {
     });
   }
 
+  Future<void> removeProduct(int index) async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+
+    setState(() {
+      totalProductsQty -= selectedProducts[index]["qty"] as int;
+      selectedProducts.removeAt(index);
+    });
+
+    await prefs.setString(
+      'selected_products',
+      jsonEncode(selectedProducts),
+    );
+
+    await prefs.setInt(
+      'total_products_qty',
+      totalProductsQty,
+    );
+  }
+
+
   Future<void> clearAllSelectedProducts() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     await prefs.remove('selected_products');
@@ -84,7 +104,7 @@ class _DashboardState extends State<Dashboard> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               const Text(
-                "Selected Products",
+                "Total Summary",
                 style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
               ),
               if (selectedProducts.isNotEmpty)
@@ -111,27 +131,95 @@ class _DashboardState extends State<Dashboard> {
                 itemCount: selectedProducts.length,
                 itemBuilder: (context, index) {
                   final product = selectedProducts[index];
+
                   return Card(
-                    elevation: 2,
-                    margin: const EdgeInsets.only(bottom: 12),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                    child: ListTile(
-                      leading: ClipRRect(
-                        borderRadius: BorderRadius.circular(8),
-                        child: Image.asset(
-                          product["image"],
-                          width: 50,
-                          height: 50,
-                          fit: BoxFit.cover,
-                        ),
+                    elevation: 4,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.all(12),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Image
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(12),
+                            child: Image.asset(
+                              product["image"],
+                              width: 60,
+                              height: 60,
+                              fit: BoxFit.cover,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+
+                          // Name & Date
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                // Product name at top
+                                Text(
+                                  product["name"],
+                                  style: const TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+
+                                // Created/Updated date
+                                if (product["addedAt"] != null)
+                                  Text(
+                                    "Created at: ${product["addedAt"]}",
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: Colors.grey.shade600,
+                                    ),
+                                  ),
+
+                                const SizedBox(height: 8),
+
+                                // Bottom row with quantity and delete button
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    // Quantity at bottom left
+                                    Text(
+                                      "Qty: ${product["qty"]}",
+                                      style: TextStyle(
+                                        fontSize: 14,
+                                        color: Colors.grey.shade800,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+
+                                    // Delete button at bottom right
+                                    InkWell(
+                                      onTap: () => removeProduct(index),
+                                      borderRadius: BorderRadius.circular(20),
+                                      child: const Padding(
+                                        padding: EdgeInsets.all(6),
+                                        child: Icon(
+                                          Icons.delete_outline,
+                                          size: 20,
+                                          color: Colors.redAccent,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
                       ),
-                      title: Text(product["name"]),
-                      subtitle: Text("Qty: ${product["qty"]}"),
-                      trailing: Text("Rs: ${(product["qty"] * product["price"])}/-"),
                     ),
                   );
                 },
               ),
+
               const SizedBox(height: 8),
               Card(
                 color: Colors.blueAccent.withOpacity(0.1),
