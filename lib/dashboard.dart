@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'edit_profile.dart';
@@ -17,6 +18,8 @@ class _DashboardState extends State<Dashboard> {
   int _selectedBottomIndex = 0;
   String userName = '';
   String userEmail = '';
+  int totalProductsQty = 0;
+  List<Map<String, dynamic>> selectedProducts = [];
 
   @override
   void initState() {
@@ -24,22 +27,36 @@ class _DashboardState extends State<Dashboard> {
     loadUserData();
   }
 
-  // Load user data from shared preferences
   Future<void> loadUserData() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     setState(() {
       userName = prefs.getString('name') ?? 'Admin';
       userEmail = prefs.getString('email') ?? '';
+      totalProductsQty = prefs.getInt('total_products_qty') ?? 0;
+
+      String? productsJson = prefs.getString('selected_products');
+      if (productsJson != null && productsJson.isNotEmpty) {
+        selectedProducts = List<Map<String, dynamic>>.from(jsonDecode(productsJson));
+      } else {
+        selectedProducts = [];
+      }
     });
   }
 
-  // Logout function
+  Future<void> clearAllSelectedProducts() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    await prefs.remove('selected_products');
+    await prefs.remove('total_products_qty');
+    setState(() {
+      selectedProducts = [];
+      totalProductsQty = 0;
+    });
+  }
+
   Future<void> logout() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     await prefs.clear();
-
     if (!mounted) return;
-
     Navigator.pushAndRemoveUntil(
       context,
       MaterialPageRoute(builder: (_) => const Login()),
@@ -47,97 +64,94 @@ class _DashboardState extends State<Dashboard> {
     );
   }
 
-  // Home Page
+  double getTotalPrice() {
+    double total = 0;
+    for (var product in selectedProducts) {
+      total += (product["qty"] * product["price"]);
+    }
+    return total;
+  }
+
+  // ================= HOME PAGE =================
   Widget buildHomePage() {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            "Dashboard Summary",
-            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+          // ================= Selected Products Section =================
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                "Selected Products",
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+              ),
+              if (selectedProducts.isNotEmpty)
+                TextButton.icon(
+                  onPressed: clearAllSelectedProducts,
+                  icon: const Icon(Icons.clear_all, color: Colors.red),
+                  label: const Text("Clear All", style: TextStyle(color: Colors.red)),
+                ),
+            ],
           ),
           const SizedBox(height: 16),
-          GridView.count(
-            crossAxisCount: 2,
-            shrinkWrap: true,
-            crossAxisSpacing: 16,
-            mainAxisSpacing: 16,
-            physics: const NeverScrollableScrollPhysics(),
-            children: [
-              summaryCard("Total Users", "150", Icons.supervised_user_circle, Colors.blueAccent),
-              summaryCard("Total Products", "120", Icons.shopping_cart, Colors.orangeAccent),
-              summaryCard("Orders", "75", Icons.receipt_long, Colors.green),
-              summaryCard("Revenue", "\$12,500", Icons.monetization_on, Colors.purpleAccent),
-            ],
-          ),
-          const SizedBox(height: 24),
-          const Text(
-            "Quick Actions",
-            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 16),
-          GridView.count(
-            crossAxisCount: 2,
-            shrinkWrap: true,
-            crossAxisSpacing: 16,
-            mainAxisSpacing: 16,
-            physics: const NeverScrollableScrollPhysics(),
-            children: [
-              actionCard("Add Product", Icons.add_shopping_cart, Colors.blueAccent, () {
-                Navigator.push(context, MaterialPageRoute(builder: (_) => const BakerProductPage()));
-              }),
-              actionCard("View Users", Icons.supervised_user_circle, Colors.orangeAccent, () {
-                setState(() {
-                  _currentIndex = 1;
-                  _selectedBottomIndex = 2;
-                });
-              }),
-              actionCard("Reports", Icons.bar_chart, Colors.green, () {
-                // TODO: Add Reports Page
-              }),
-              actionCard("Settings", Icons.settings, Colors.purpleAccent, () {
-                Navigator.push(context, MaterialPageRoute(builder: (_) => const EditProfileScreen()));
-              }),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
 
-  // Summary Card Widget
-  Widget summaryCard(String title, String count, IconData icon, Color iconColor) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.1),
-            blurRadius: 10,
-            offset: const Offset(0, 5),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          CircleAvatar(
-            radius: 0,
-            backgroundColor: iconColor.withOpacity(0.2),
-            child: Icon(icon, color: iconColor, size: 28),
-          ),
-          const SizedBox(width: 16),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+          // ================= Selected Products List =================
+          selectedProducts.isEmpty
+              ? const Text(
+            "No products selected",
+            style: TextStyle(fontSize: 16, color: Colors.grey),
+          )
+              : Column(
             children: [
-              Text(title, style: const TextStyle(color: Colors.black87, fontSize: 16)),
-              const SizedBox(height: 4),
-              Text(count,
-                  style: const TextStyle(
-                      color: Colors.black87, fontSize: 22, fontWeight: FontWeight.bold)),
+              ListView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: selectedProducts.length,
+                itemBuilder: (context, index) {
+                  final product = selectedProducts[index];
+                  return Card(
+                    elevation: 2,
+                    margin: const EdgeInsets.only(bottom: 12),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    child: ListTile(
+                      leading: ClipRRect(
+                        borderRadius: BorderRadius.circular(8),
+                        child: Image.asset(
+                          product["image"],
+                          width: 50,
+                          height: 50,
+                          fit: BoxFit.cover,
+                        ),
+                      ),
+                      title: Text(product["name"]),
+                      subtitle: Text("Qty: ${product["qty"]}"),
+                      trailing: Text("Rs: ${(product["qty"] * product["price"])}/-"),
+                    ),
+                  );
+                },
+              ),
+              const SizedBox(height: 8),
+              Card(
+                color: Colors.blueAccent.withOpacity(0.1),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text("Total",
+                          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                      Text(
+                        "Rs: ${getTotalPrice().toStringAsFixed(2)}/-",
+                        style: const TextStyle(
+                            fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black87),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
             ],
           ),
         ],
@@ -145,50 +159,9 @@ class _DashboardState extends State<Dashboard> {
     );
   }
 
-  // Action Card Widget
-  Widget actionCard(String title, IconData icon, Color iconColor, VoidCallback onTap) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.1),
-              blurRadius: 8,
-              offset: const Offset(0, 4),
-            ),
-          ],
-        ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(icon, color: iconColor, size: 28),
-            const SizedBox(height: 8),
-            Text(title,
-                style: const TextStyle(
-                  color: Colors.black87,
-                  fontWeight: FontWeight.bold,
-                )),
-          ],
-        ),
-      ),
-    );
-  }
+  Widget buildUsersPage() => const Center(child: Text("Users Page", style: TextStyle(fontSize: 22)));
+  Widget buildProfilePage() => const ProfileScreen();
 
-  // Users Page Placeholder
-  Widget buildUsersPage() {
-    return const Center(child: Text("Users Page", style: TextStyle(fontSize: 22)));
-  }
-
-  // Profile Page Placeholder
-  Widget buildProfilePage() {
-    return const ProfileScreen();
-  }
-
-  // Main Build
   @override
   Widget build(BuildContext context) {
     Widget body;
@@ -205,22 +178,13 @@ class _DashboardState extends State<Dashboard> {
         preferredSize: const Size.fromHeight(kToolbarHeight),
         child: Container(
           decoration: const BoxDecoration(
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black26,
-                blurRadius: 8,
-                offset: Offset(0, 3),
-              ),
-            ],
+            boxShadow: [BoxShadow(color: Colors.black26, blurRadius: 8, offset: Offset(0, 3))],
           ),
           child: AppBar(
             backgroundColor: Colors.white,
             elevation: 0,
             shadowColor: Colors.transparent,
-            title: const Text(
-              "Dashboard",
-              style: TextStyle(color: Colors.black),
-            ),
+            title: const Text("Dashboard", style: TextStyle(color: Colors.black)),
             centerTitle: true,
             actions: [
               Padding(
@@ -228,21 +192,15 @@ class _DashboardState extends State<Dashboard> {
                 child: GestureDetector(
                   onTap: () {
                     Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (_) => const EditProfileScreen()),
-                    );
+                        context, MaterialPageRoute(builder: (_) => const EditProfileScreen()));
                   },
-                  child: const CircleAvatar(
-                    radius: 20,
-                    child: Icon(Icons.person),
-                  ),
+                  child: const CircleAvatar(radius: 20, child: Icon(Icons.person)),
                 ),
               ),
             ],
           ),
         ),
       ),
-
       drawer: Drawer(
         child: ListView(
           padding: EdgeInsets.zero,
@@ -269,7 +227,9 @@ class _DashboardState extends State<Dashboard> {
               title: const Text("Products"),
               onTap: () {
                 Navigator.pop(context);
-                Navigator.push(context, MaterialPageRoute(builder: (_) => const BakerProductPage()));
+                Navigator.push(
+                    context, MaterialPageRoute(builder: (_) => const BakerProductPage()))
+                    .then((_) => loadUserData());
               },
             ),
             ListTile(
@@ -303,9 +263,7 @@ class _DashboardState extends State<Dashboard> {
           ],
         ),
       ),
-
       body: body,
-
       bottomNavigationBar: Container(
         margin: const EdgeInsets.all(12),
         height: 80,
@@ -314,10 +272,7 @@ class _DashboardState extends State<Dashboard> {
           borderRadius: BorderRadius.circular(24),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.15),
-              blurRadius: 15,
-              offset: const Offset(0, 5),
-            ),
+                color: Colors.black.withOpacity(0.15), blurRadius: 15, offset: const Offset(0, 5))
           ],
         ),
         child: ClipRRect(
@@ -332,9 +287,12 @@ class _DashboardState extends State<Dashboard> {
             elevation: 0,
             onTap: (index) {
               if (index == 1) {
-                Navigator.push(context, MaterialPageRoute(builder: (_) => const BakerProductPage()));
+                Navigator.push(
+                    context, MaterialPageRoute(builder: (_) => const BakerProductPage()))
+                    .then((_) => loadUserData());
               } else if (index == 3) {
-                Navigator.push(context, MaterialPageRoute(builder: (_) => const ProfileScreen()));
+                Navigator.push(context,
+                    MaterialPageRoute(builder: (_) => const ProfileScreen()));
               } else {
                 setState(() {
                   _selectedBottomIndex = index;
