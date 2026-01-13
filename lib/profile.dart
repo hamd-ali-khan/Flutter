@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'edit_profile.dart';
-import '../apis/api_services.dart';
+import 'apis/api_services.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -15,7 +15,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   void initState() {
     super.initState();
-    _profileFuture = ApiService.get("profile");// use API service
+    _profileFuture = fetchProfile();
+  }
+
+  Future<Map<String, dynamic>> fetchProfile() async {
+    final response = await ApiService.get("profile");
+    if (response is Map<String, dynamic>) return response;
+    throw Exception("Invalid profile data");
   }
 
   String _formatDate(String rawDate) {
@@ -29,7 +35,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
       appBar: AppBar(
         title: const Text("Profile"),
         centerTitle: true,
@@ -49,16 +54,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Text(
-                    snapshot.error.toString(),
-                    style: const TextStyle(color: Colors.red),
-                    textAlign: TextAlign.center,
-                  ),
+                  Text(snapshot.error.toString(),
+                      style: const TextStyle(color: Colors.red)),
                   const SizedBox(height: 16),
                   ElevatedButton(
                     onPressed: () {
                       setState(() {
-                        _profileFuture = ApiService.get("profile");
+                        _profileFuture = fetchProfile();
                       });
                     },
                     child: const Text("Retry"),
@@ -69,12 +71,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
           }
 
           final data = snapshot.data!;
-          final String name = data['name'];
-          final String email = data['email'];
-          final String role = data['role']['title'];
-          final String branch = data['branch']['branch_name'];
-          final String createdAt = _formatDate(data['created_at']);
-          final String? profileImage = data['profile_photo_url'];
+          final name = data['name'] ?? '';
+          final email = data['email'] ?? '';
+          final role = data['role']?['title'] ?? 'N/A';
+          final branch = data['branch']?['branch_name'] ?? 'N/A';
+          final joined = _formatDate(data['created_at'] ?? '');
+          final profileImage =
+          (data['profile_photo_url'] != null && data['profile_photo_url'] != "")
+              ? data['profile_photo_url']
+              : null;
 
           return SingleChildScrollView(
             padding: const EdgeInsets.all(16),
@@ -84,11 +89,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 CircleAvatar(
                   radius: 55,
                   backgroundColor: Colors.grey[300],
-                  backgroundImage:
-                  profileImage != null ? NetworkImage(profileImage) : null,
-                  child: profileImage == null
-                      ? const Icon(Icons.person, size: 55)
-                      : null,
+                  backgroundImage: profileImage != null ? NetworkImage(profileImage) : null,
+                  child: profileImage == null ? const Icon(Icons.person, size: 55) : null,
                 ),
                 const SizedBox(height: 16),
                 Text(name,
@@ -99,32 +101,26 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 const SizedBox(height: 24),
                 _infoTile(Icons.badge, "Role", role),
                 _infoTile(Icons.store, "Branch", branch),
-                _infoTile(Icons.calendar_today, "Joined", createdAt),
+                _infoTile(Icons.calendar_today, "Joined", joined),
                 const SizedBox(height: 24),
                 ElevatedButton(
                   onPressed: () {
                     Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (_) => const EditProfileScreen()),
-                    );
+                        context,
+                        MaterialPageRoute(
+                            builder: (_) => const EditProfileScreen()));
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.blueAccent,
                     foregroundColor: Colors.white,
                     minimumSize: const Size(double.infinity, 48),
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
+                        borderRadius: BorderRadius.circular(12)),
                   ),
-                  child: const Text(
-                    "Edit Profile",
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
+                  child: const Text("Edit Profile",
+                      style: TextStyle(
+                          fontSize: 16, fontWeight: FontWeight.bold)),
                 ),
-
               ],
             ),
           );

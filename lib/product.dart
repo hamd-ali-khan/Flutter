@@ -2,32 +2,68 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dashboard.dart';
+import 'apis/api_services.dart';
 
 class BakerProductPage extends StatefulWidget {
   const BakerProductPage({super.key});
-
-  //  Expose total products count for dashboard
-  static int get totalProductsCount => _products.length;
-
-  // PRODUCT LIST
-  static final List<Map<String, dynamic>> _products = [
-    {"id": 1, "name": "Bread", "price": 120, "qty": 0, "image": "images/img_3.png"},
-    {"id": 2, "name": "Cake", "price": 850, "qty": 0, "image": "images/img.png"},
-    {"id": 3, "name": "Cookies", "price": 300, "qty": 0, "image": "images/img_1.png"},
-    {"id": 4, "name": "Pastry", "price": 250, "qty": 0, "image": "images/img_2.png"},
-  ];
-
 
   @override
   State<BakerProductPage> createState() => _BakerProductPageState();
 }
 
 class _BakerProductPageState extends State<BakerProductPage> {
+  List<Map<String, dynamic>> products = [];
+  bool isLoading = true;
 
-  int get totalItems => BakerProductPage._products.fold<int>(0, (sum, item) => sum + item["qty"] as int);
-  int get totalPrice => BakerProductPage._products.fold<int>(
+  @override
+  void initState() {
+    super.initState();
+    fetchProducts();
+  }
+
+  // ================= FETCH PRODUCTS =================
+  Future<void> fetchProducts() async {
+    try {
+      setState(() => isLoading = true);
+
+      final response = await ApiService.get("products");
+
+      List data = [];
+      if (response is Map && response.containsKey('data')) {
+        data = response['data'];
+      } else if (response is List) {
+        data = response;
+      }
+
+      setState(() {
+        products = data.map<Map<String, dynamic>>((item) {
+          return {
+            "id": item["id"],
+            "name": item["name"] ?? "",
+            "detail": item["detail"] ?? "",
+            "image": item["image"] ?? "",
+            "price": item["price"] ?? 0,
+            "qty": 0,
+          };
+        }).toList();
+        isLoading = false;
+      });
+    } catch (e) {
+      setState(() => isLoading = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Failed to load products")),
+      );
+    }
+  }
+
+  // ================= TOTALS =================
+  int get totalItems =>
+      products.fold(0, (sum, item) => sum + ((item["qty"] ?? 0) as int));
+
+  double get totalPrice => products.fold(
     0,
-        (sum, item) => sum + (item["qty"] * item["price"]) as int,
+        (sum, item) =>
+    sum + ((item["qty"] ?? 0) * (item["price"] ?? 0)).toDouble(),
   );
 
   void _showLoader() {
@@ -38,42 +74,69 @@ class _BakerProductPageState extends State<BakerProductPage> {
     );
   }
 
-
-  void _save() async {
+  // ================= SAVE PRODUCTS =================
+  Future<void> _save() async {
     if (totalItems == 0) return;
 
     _showLoader();
-    await Future.delayed(const Duration(seconds: 2));
 
-    // Save selected products in SharedPreferences
-    List<Map<String, dynamic>> selectedProducts = BakerProductPage._products
-        .where((p) => p["qty"] > 0)
+    final now = DateTime.now().toIso8601String(); // timestamp
+
+    // Load existing products from SharedPreferences
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    final existingJson = prefs.getString('selected_products');
+    List<Map<String, dynamic>> existingProducts = existingJson != null
+        ? List<Map<String, dynamic>>.from(jsonDecode(existingJson))
+        : [];
+
+    // Prepare new selected products
+    List<Map<String, dynamic>> newProducts = products
+        .where((p) => (p["qty"] ?? 0) > 0)
         .map((p) => {
+      "product_id": p["id"],
       "name": p["name"],
       "price": p["price"],
       "qty": p["qty"],
       "image": p["image"],
+      "created_at": now,
     })
         .toList();
 
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    await prefs.setString('selected_products', jsonEncode(selectedProducts));
-    await prefs.setInt('total_products_qty', totalItems);
-
-    setState(() {
-      for (var product in BakerProductPage._products) {
-        product["qty"] = 0;
+    // Merge with existing products
+    for (var newP in newProducts) {
+      bool exists = false;
+      for (var existP in existingProducts) {
+        if (existP['product_id'] == newP['product_id']) {
+          existP['qty'] = (existP['qty'] ?? 0) + (newP['qty'] ?? 0);
+          existP['created_at'] = now; // update timestamp
+          exists = true;
+          break;
+        }
       }
-    });
+      if (!exists) {
+        existingProducts.add(newP);
+      }
+    }
+
+    // Save merged products
+    await prefs.setString('selected_products', jsonEncode(existingProducts));
+    await prefs.setInt(
+      'total_products_qty',
+      existingProducts.fold<int>(
+          0, (sum, p) => sum + ((p['qty'] ?? 0) as int)),
+    );
+
+    // Reset qty in current page
+    for (var p in products) p["qty"] = 0;
 
     Navigator.pop(context); // close loader
-
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(builder: (_) => const Dashboard()),
     );
   }
 
+  // ================= UI =================
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -85,50 +148,67 @@ class _BakerProductPageState extends State<BakerProductPage> {
         foregroundColor: Colors.black,
         elevation: 2,
       ),
-      body: ListView.builder(
-        padding: const EdgeInsets.fromLTRB(12, 12, 12, 100),
-        itemCount: BakerProductPage._products.length,
-        itemBuilder: (context, index) {
-          return _productCard(BakerProductPage._products[index]);
-        },
+      body: isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : RefreshIndicator(
+        onRefresh: fetchProducts,
+        child: products.isEmpty
+            ? const Center(child: Text("No products found"))
+            : ListView.builder(
+          padding: const EdgeInsets.fromLTRB(12, 12, 12, 100),
+          itemCount: products.length,
+          itemBuilder: (context, index) =>
+              _productCard(products[index]),
+        ),
       ),
-      bottomNavigationBar: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 8)],
-        ),
-        child: Row(
-          children: [
-            Expanded(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text("$totalItems items selected", style: const TextStyle(color: Colors.black54)),
-                  const SizedBox(height: 4),
-                  Text("Rs: $totalPrice/-", style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-                ],
-              ),
+      bottomNavigationBar: _bottomBar(),
+    );
+  }
+
+  // ================= BOTTOM BAR =================
+  Widget _bottomBar() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 8)],
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text("$totalItems items selected",
+                    style: const TextStyle(color: Colors.black54)),
+                const SizedBox(height: 4),
+                Text("Rs: ${totalPrice.toStringAsFixed(2)}/-",
+                    style: const TextStyle(
+                        fontSize: 20, fontWeight: FontWeight.bold)),
+              ],
             ),
-            ElevatedButton(
-              onPressed: totalItems == 0 ? null : _save,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.blue,
-                padding: const EdgeInsets.symmetric(horizontal: 26, vertical: 14),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-              ),
-              child: const Text(
-                "Save",
-                style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
-              ),
-            )
-          ],
-        ),
+          ),
+          ElevatedButton(
+            onPressed: totalItems == 0 ? null : _save,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.blue,
+              padding:
+              const EdgeInsets.symmetric(horizontal: 26, vertical: 14),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14)),
+            ),
+            child: const Text(
+              "Save",
+              style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+            ),
+          )
+        ],
       ),
     );
   }
 
+  // ================= PRODUCT CARD =================
   Widget _productCard(Map<String, dynamic> product) {
     return Container(
       margin: const EdgeInsets.only(bottom: 14),
@@ -142,39 +222,90 @@ class _BakerProductPageState extends State<BakerProductPage> {
         children: [
           ClipRRect(
             borderRadius: BorderRadius.circular(12),
-            child: Image.asset(product["image"], height: 64, width: 64, fit: BoxFit.cover),
+            child: (product["image"] != null &&
+                product["image"].toString().isNotEmpty)
+                ? Image.network(
+              product["image"],
+              height: 64,
+              width: 64,
+              fit: BoxFit.cover,
+            )
+                : CircleAvatar(
+              radius: 32,
+              backgroundColor: Colors.blueAccent.withOpacity(0.2),
+              child: Text(
+                product["name"].isNotEmpty
+                    ? product["name"][0].toUpperCase()
+                    : "?",
+                style: const TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.blueAccent),
+              ),
+            ),
           ),
           const SizedBox(width: 14),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(product["name"], style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w600)),
-                const SizedBox(height: 6),
-                Text("Rs: ${product["price"]}/-", style: const TextStyle(color: Colors.black54)),
+                Text(product["name"],
+                    style: const TextStyle(
+                        fontSize: 17, fontWeight: FontWeight.w600)),
+                const SizedBox(height: 4),
+                Text(
+                  product["detail"] ?? "",
+                  style: const TextStyle(fontSize: 14, color: Colors.black54),
+                ),
               ],
             ),
           ),
-          _quantitySelector(product),
+          Column(
+            children: [
+              Text(
+                "Rs: ${product["price"]}/-",
+                style:
+                const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+              ),
+              const SizedBox(height: 6),
+              _quantitySelector(product),
+            ],
+          ),
         ],
       ),
     );
   }
 
+  // ================= QTY SELECTOR =================
   Widget _quantitySelector(Map<String, dynamic> product) {
     return Row(
       children: [
-        _qtyButton(icon: Icons.remove, enabled: product["qty"] > 0, onTap: () => setState(() => product["qty"]--)),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 10),
-          child: Text("${product["qty"]}", style: const TextStyle(fontWeight: FontWeight.w600)),
+        _qtyButton(
+          icon: Icons.remove,
+          enabled: (product["qty"] ?? 0) > 0,
+          onTap: () =>
+              setState(() => product["qty"] = (product["qty"] ?? 0) - 1),
         ),
-        _qtyButton(icon: Icons.add, enabled: true, onTap: () => setState(() => product["qty"]++)),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 8),
+          child: Text("${product["qty"] ?? 0}",
+              style: const TextStyle(fontWeight: FontWeight.w600)),
+        ),
+        _qtyButton(
+          icon: Icons.add,
+          enabled: true,
+          onTap: () =>
+              setState(() => product["qty"] = (product["qty"] ?? 0) + 1),
+        ),
       ],
     );
   }
 
-  Widget _qtyButton({required IconData icon, required VoidCallback onTap, required bool enabled}) {
+  Widget _qtyButton({
+    required IconData icon,
+    required VoidCallback onTap,
+    required bool enabled,
+  }) {
     return InkWell(
       onTap: enabled ? onTap : null,
       borderRadius: BorderRadius.circular(8),

@@ -4,65 +4,98 @@ import 'package:http/http.dart' as http;
 import 'package:my_app/utils/token_storage.dart';
 
 class ApiService {
-  static const String baseUrl = "http://192.168.10.8:8000/api/";
+  // ✅ Base API URL
+  static const String baseUrl = "http://192.168.10.51:8000/api/";
 
-  // GET request
-  static Future<Map<String, dynamic>> get(String endpoint) async {
+  // ================= GET =================
+  /// Makes a GET request to [endpoint] and returns parsed JSON.
+  /// Can return Map<String, dynamic> or List<dynamic>.
+  static Future<dynamic> get(String endpoint) async {
     final token = await TokenStorage.getToken();
-    final response = await http.get(
-      Uri.parse(baseUrl + endpoint),
-      headers: {
-        "Accept": "application/json",
-        "Authorization": "Bearer $token",
-      },
-    );
-    if (response.statusCode == 200) {
-      return jsonDecode(response.body);
-    } else {
-      throw Exception("Failed request (${response.statusCode})");
+
+    try {
+      final response = await http.get(
+        Uri.parse(baseUrl + endpoint),
+        headers: {
+          "Accept": "application/json",
+          "Authorization": "Bearer $token",
+        },
+      );
+
+      if (response.statusCode == 200) {
+        return jsonDecode(response.body);
+      } else {
+        throw Exception(
+            "GET request failed [${response.statusCode}]: ${response.body}");
+      }
+    } catch (e) {
+      throw Exception("GET request error: $e");
     }
   }
 
-  // POST request
-  static Future<Map<String, dynamic>> post(String endpoint, Map<String, dynamic> body) async {
+  // ================= POST =================
+  /// Makes a POST request to [endpoint] with JSON [body].
+  /// Returns parsed JSON.
+  static Future<dynamic> post(String endpoint, Map<String, dynamic> body) async {
     final token = await TokenStorage.getToken();
-    final response = await http.post(
-      Uri.parse(baseUrl + endpoint),
-      headers: {
-        "Content-Type": "application/json",
-        "Accept": "application/json",
-        "Authorization": "Bearer $token",
-      },
-      body: jsonEncode(body),
-    );
-    if (response.statusCode == 200) {
-      return jsonDecode(response.body);
-    } else {
-      throw Exception("Failed request (${response.statusCode})");
+
+    try {
+      final response = await http.post(
+        Uri.parse(baseUrl + endpoint),
+        headers: {
+          "Content-Type": "application/json",
+          "Accept": "application/json",
+          "Authorization": "Bearer $token",
+        },
+        body: jsonEncode(body),
+      );
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        return jsonDecode(response.body);
+      } else {
+        throw Exception(
+            "POST request failed [${response.statusCode}]: ${response.body}");
+      }
+    } catch (e) {
+      throw Exception("POST request error: $e");
     }
   }
 
-  // Multipart POST for uploading profile image
-  static Future<Map<String, dynamic>> uploadProfile(Map<String, String> fields, File? image) async {
+  // ================= UPLOAD PROFILE =================
+  /// Uploads profile with optional [image] and additional [fields].
+  static Future<dynamic> uploadProfile(
+      Map<String, String> fields, File? image) async {
     final token = await TokenStorage.getToken();
-    final request = http.MultipartRequest('POST', Uri.parse(baseUrl + "profile/update"));
-    request.headers['Authorization'] = "Bearer $token";
 
-    // Add fields
-    request.fields.addAll(fields);
+    try {
+      final request = http.MultipartRequest(
+        'POST',
+        Uri.parse(baseUrl + "profile/update"),
+      );
 
-    // Add image if exists
-    if (image != null) {
-      request.files.add(await http.MultipartFile.fromPath('profile_photo', image.path));
-    }
+      request.headers['Authorization'] = "Bearer $token";
+      request.fields.addAll(fields);
 
-    final streamedResponse = await request.send();
-    final response = await http.Response.fromStream(streamedResponse);
+      if (image != null) {
+        request.files.add(
+          await http.MultipartFile.fromPath(
+            'profile_photo',
+            image.path,
+          ),
+        );
+      }
 
-    if (response.statusCode == 200) {
-      return jsonDecode(response.body);
-    } else {
-      throw Exception("Failed to update profile (${response.statusCode})");
+      final streamedResponse = await request.send();
+      final response = await http.Response.fromStream(streamedResponse);
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        return jsonDecode(response.body);
+      } else {
+        throw Exception(
+            "Profile upload failed [${response.statusCode}]: ${response.body}");
+      }
+    } catch (e) {
+      throw Exception("Profile upload error: $e");
     }
   }
 }
