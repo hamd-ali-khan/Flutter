@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:my_app/edit_profile.dart';
-import 'package:my_app/product.dart';
+import 'add_product.dart';
+import 'branch.dart';
+import 'roles.dart';
+import 'users.dart';
 import '/login.dart';
 
 class AdminDashboard extends StatefulWidget {
@@ -17,7 +20,6 @@ class _AdminDashboardState extends State<AdminDashboard>
   String userName = '';
   String userEmail = '';
 
-  // ✅ SAFE animation setup (NO late errors)
   AnimationController? _controller;
   Animation<double> _fadeAnimation = const AlwaysStoppedAnimation(1);
   Animation<Offset> _slideAnimation =
@@ -25,7 +27,7 @@ class _AdminDashboardState extends State<AdminDashboard>
 
   final List<Widget> _pages = const [
     Center(child: Text("Home Page", style: TextStyle(fontSize: 22))),
-    Center(child: Text("Users Page", style: TextStyle(fontSize: 22))),
+    AdminUsersPage(),
     Center(child: Text("Profile Page", style: TextStyle(fontSize: 22))),
   ];
 
@@ -79,9 +81,6 @@ class _AdminDashboardState extends State<AdminDashboard>
     );
   }
 
-  // =========================
-  // Summary Card
-  // =========================
   Widget summaryCard(
       String title, String count, IconData icon, Color iconColor) {
     return FadeTransition(
@@ -102,7 +101,6 @@ class _AdminDashboardState extends State<AdminDashboard>
             ],
           ),
           child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               CircleAvatar(
                 radius: 22,
@@ -114,23 +112,13 @@ class _AdminDashboardState extends State<AdminDashboard>
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      title,
-                      softWrap: true,
-                      style: const TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
+                    Text(title,
+                        style: const TextStyle(
+                            fontSize: 14, fontWeight: FontWeight.w600)),
                     const SizedBox(height: 6),
-                    Text(
-                      count,
-                      softWrap: true,
-                      style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
+                    Text(count,
+                        style: const TextStyle(
+                            fontSize: 18, fontWeight: FontWeight.bold)),
                   ],
                 ),
               ),
@@ -141,9 +129,6 @@ class _AdminDashboardState extends State<AdminDashboard>
     );
   }
 
-  // =========================
-  // Action Card
-  // =========================
   Widget actionCard(
       String title, IconData icon, Color iconColor, VoidCallback onTap) {
     return FadeTransition(
@@ -170,15 +155,10 @@ class _AdminDashboardState extends State<AdminDashboard>
               children: [
                 Icon(icon, color: iconColor, size: 28),
                 const SizedBox(height: 10),
-                Text(
-                  title,
-                  textAlign: TextAlign.center,
-                  softWrap: true,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 14,
-                  ),
-                ),
+                Text(title,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                        fontWeight: FontWeight.bold, fontSize: 14)),
               ],
             ),
           ),
@@ -187,9 +167,6 @@ class _AdminDashboardState extends State<AdminDashboard>
     );
   }
 
-  // =========================
-  // Home Page (Responsive)
-  // =========================
   Widget buildHomePage() {
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -205,10 +182,9 @@ class _AdminDashboardState extends State<AdminDashboard>
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
-                "Dashboard Summary",
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-              ),
+              const Text("Dashboard Summary",
+                  style:
+                  TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
               const SizedBox(height: 16),
               GridView.count(
                 crossAxisCount: columns,
@@ -221,17 +197,16 @@ class _AdminDashboardState extends State<AdminDashboard>
                       Icons.supervised_user_circle, Colors.blueAccent),
                   summaryCard("Total Products", "120",
                       Icons.shopping_cart, Colors.orangeAccent),
-                  summaryCard("Orders", "75",
-                      Icons.receipt_long, Colors.green),
+                  summaryCard(
+                      "Orders", "75", Icons.receipt_long, Colors.green),
                   summaryCard("Revenue", "\$12,500",
                       Icons.monetization_on, Colors.purpleAccent),
                 ],
               ),
               const SizedBox(height: 24),
-              const Text(
-                "Quick Actions",
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-              ),
+              const Text("Quick Actions",
+                  style:
+                  TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
               const SizedBox(height: 16),
               GridView.count(
                 crossAxisCount: columns,
@@ -245,20 +220,33 @@ class _AdminDashboardState extends State<AdminDashboard>
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                              builder: (_) => const BakerProductPage()),
+                              builder: (_) =>
+                              const AdminAddProductPage()),
                         );
                       }),
                   actionCard("View Users",
-                      Icons.supervised_user_circle, Colors.orangeAccent, () {
-                        setState(() => _currentIndex = 1);
+                      Icons.supervised_user_circle,
+                      Colors.orangeAccent, () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (_) => const AdminUsersPage()),
+                        );
                       }),
-                  actionCard("Reports", Icons.bar_chart, Colors.green, () {}),
-                  actionCard("Settings", Icons.settings,
+                  actionCard("Roles", Icons.admin_panel_settings,
+                      Colors.green, () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (_) => const AdminRolesPage()),
+                        );
+                      }),
+                  actionCard("Branch", Icons.location_city,
                       Colors.purpleAccent, () {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                              builder: (_) => const EditProfileScreen()),
+                              builder: (_) => const AdminBranchPage()),
                         );
                       }),
                 ],
@@ -270,18 +258,13 @@ class _AdminDashboardState extends State<AdminDashboard>
     );
   }
 
-  // =========================
-  // UI
-  // =========================
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Colors.white,
-        title: const Text(
-          "Admin Dashboard",
-          style: TextStyle(color: Colors.black),
-        ),
+        title: const Text("Admin Dashboard",
+            style: TextStyle(color: Colors.black)),
         centerTitle: true,
         elevation: 1,
         actions: [
@@ -322,7 +305,7 @@ class _AdminDashboardState extends State<AdminDashboard>
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                      builder: (_) => const BakerProductPage()),
+                      builder: (_) => const AdminAddProductPage()),
                 );
               },
             ),
