@@ -118,12 +118,10 @@ class _DashboardState extends State<Dashboard> {
     }
   }
 
-  // ================= TOTAL PRICE =================
-  double getTotalPrice() {
-    return selectedProducts.fold(
-      0,
-          (sum, p) => sum + ((p['qty'] ?? 0) * (p['price'] ?? 0)),
-    );
+  // ================= TOTAL QUANTITY =================
+  int getTotalQuantity() {
+    return selectedProducts.fold<int>(
+        0, (sum, p) => sum + ((p['qty'] ?? 0) as int));
   }
 
   // ================= ADD OR UPDATE PRODUCT =================
@@ -208,7 +206,8 @@ class _DashboardState extends State<Dashboard> {
                             child: Column(
                               crossAxisAlignment:
                               CrossAxisAlignment.start,
-                              mainAxisAlignment: MainAxisAlignment.center,
+                              mainAxisAlignment:
+                              MainAxisAlignment.center,
                               children: [
                                 Text(
                                   product["name"] ?? "Unknown",
@@ -266,7 +265,7 @@ class _DashboardState extends State<Dashboard> {
                 },
               ),
               const SizedBox(height: 8),
-              // Total price card
+              // Total quantity card
               Card(
                 color: Colors.blueAccent.withOpacity(0.1),
                 shape: RoundedRectangleBorder(
@@ -278,12 +277,12 @@ class _DashboardState extends State<Dashboard> {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       const Text(
-                        "Total",
+                        "Total Quantity:",
                         style: TextStyle(
                             fontSize: 18, fontWeight: FontWeight.bold),
                       ),
                       Text(
-                        "Rs: ${getTotalPrice().toStringAsFixed(2)}/-",
+                        "${getTotalQuantity()}",
                         style: const TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
@@ -300,9 +299,6 @@ class _DashboardState extends State<Dashboard> {
     );
   }
 
-  Widget buildUsersPage() =>
-      const Center(child: Text("Users Page", style: TextStyle(fontSize: 22)));
-
   Widget buildProfilePage() => const ProfileScreen();
 
   // ================= MAIN =================
@@ -312,7 +308,7 @@ class _DashboardState extends State<Dashboard> {
     if (_currentIndex == 0) {
       body = buildHomePage();
     } else if (_currentIndex == 1) {
-      body = buildUsersPage();
+      body = const BakerProductPage();
     } else {
       body = buildProfilePage();
     }
@@ -328,13 +324,13 @@ class _DashboardState extends State<Dashboard> {
               BoxShadow(
                 color: Colors.black.withOpacity(0.25),
                 blurRadius: 8,
-                offset: const Offset(0, 4), // Shadow below AppBar
+                offset: const Offset(0, 4),
               ),
             ],
           ),
           child: AppBar(
             backgroundColor: Colors.white,
-            elevation: 0, // Remove default shadow
+            elevation: 0,
             title: const Text("Dashboard",
                 style: TextStyle(color: Colors.black)),
             centerTitle: true,
@@ -349,8 +345,8 @@ class _DashboardState extends State<Dashboard> {
                           builder: (_) => const EditProfileScreen()),
                     );
                   },
-                  child:
-                  const CircleAvatar(radius: 20, child: Icon(Icons.person)),
+                  child: const CircleAvatar(
+                      radius: 20, child: Icon(Icons.person)),
                 ),
               ),
             ],
@@ -394,24 +390,13 @@ class _DashboardState extends State<Dashboard> {
               },
             ),
             ListTile(
-              leading: const Icon(Icons.supervised_user_circle),
-              title: const Text("Users"),
-              onTap: () {
-                Navigator.pop(context);
-                setState(() {
-                  _currentIndex = 1;
-                  _selectedBottomIndex = 2;
-                });
-              },
-            ),
-            ListTile(
               leading: const Icon(Icons.person),
               title: const Text("Profile"),
               onTap: () {
                 Navigator.pop(context);
                 setState(() {
                   _currentIndex = 2;
-                  _selectedBottomIndex = 3;
+                  _selectedBottomIndex = 2;
                 });
               },
             ),
@@ -456,7 +441,7 @@ class _DashboardState extends State<Dashboard> {
                 if (result != null && result is Map<String, dynamic>) {
                   await addOrUpdateProduct(result);
                 }
-              } else if (index == 3) {
+              } else if (index == 2) {
                 Navigator.push(
                   context,
                   MaterialPageRoute(builder: (_) => const ProfileScreen()),
@@ -465,18 +450,16 @@ class _DashboardState extends State<Dashboard> {
                 setState(() {
                   _selectedBottomIndex = index;
                   if (index == 0) _currentIndex = 0;
-                  if (index == 2) _currentIndex = 1;
+                  if (index == 1) _currentIndex = 1;
+                  if (index == 2) _currentIndex = 2;
                 });
               }
             },
             items: const [
               BottomNavigationBarItem(
-                  icon: Icon(Icons.home, size: 28), label: "Home"),
+                  icon: Icon(Icons.dashboard, size: 28), label: "Home"),
               BottomNavigationBarItem(
                   icon: Icon(Icons.shopping_cart, size: 28), label: "Items"),
-              BottomNavigationBarItem(
-                  icon: Icon(Icons.supervised_user_circle, size: 28),
-                  label: "Users"),
               BottomNavigationBarItem(
                   icon: Icon(Icons.person, size: 28), label: "Profile"),
             ],

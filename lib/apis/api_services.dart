@@ -5,7 +5,7 @@ import 'package:my_app/utils/token_storage.dart';
 
 class ApiService {
   // ✅ Base API URL
-  static const String baseUrl = "http://192.168.10.51:8000/api/";
+  static const String baseUrl = "http://192.168.10.12:8000/api/";
 
   // ================= GET =================
   /// Makes a GET request to [endpoint] and returns parsed JSON.

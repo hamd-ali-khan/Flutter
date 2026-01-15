@@ -42,7 +42,7 @@ class _BakerProductPageState extends State<BakerProductPage> {
             "name": item["name"] ?? "",
             "detail": item["detail"] ?? "",
             "image": item["image"] ?? "",
-            "price": item["price"] ?? 0,
+            "unit_price": item["price"] ?? 0, // kept for backend
             "qty": 0,
           };
         }).toList();
@@ -56,15 +56,9 @@ class _BakerProductPageState extends State<BakerProductPage> {
     }
   }
 
-  // ================= TOTALS =================
+  // ================= TOTAL QTY =================
   int get totalItems =>
       products.fold(0, (sum, item) => sum + ((item["qty"] ?? 0) as int));
-
-  double get totalPrice => products.fold(
-    0,
-        (sum, item) =>
-    sum + ((item["qty"] ?? 0) * (item["price"] ?? 0)).toDouble(),
-  );
 
   void _showLoader() {
     showDialog(
@@ -80,35 +74,33 @@ class _BakerProductPageState extends State<BakerProductPage> {
 
     _showLoader();
 
-    final now = DateTime.now().toIso8601String(); // timestamp
-
-    // Load existing products from SharedPreferences
+    final now = DateTime.now().toIso8601String();
     SharedPreferences prefs = await SharedPreferences.getInstance();
+
     final existingJson = prefs.getString('selected_products');
     List<Map<String, dynamic>> existingProducts = existingJson != null
         ? List<Map<String, dynamic>>.from(jsonDecode(existingJson))
         : [];
 
-    // Prepare new selected products
     List<Map<String, dynamic>> newProducts = products
         .where((p) => (p["qty"] ?? 0) > 0)
         .map((p) => {
       "product_id": p["id"],
       "name": p["name"],
-      "price": p["price"],
       "qty": p["qty"],
+      "unit_price": p["unit_price"],
       "image": p["image"],
       "created_at": now,
     })
         .toList();
 
-    // Merge with existing products
     for (var newP in newProducts) {
       bool exists = false;
       for (var existP in existingProducts) {
         if (existP['product_id'] == newP['product_id']) {
-          existP['qty'] = (existP['qty'] ?? 0) + (newP['qty'] ?? 0);
-          existP['created_at'] = now; // update timestamp
+          existP['qty'] =
+              (existP['qty'] ?? 0) + (newP['qty'] ?? 0);
+          existP['created_at'] = now;
           exists = true;
           break;
         }
@@ -118,18 +110,20 @@ class _BakerProductPageState extends State<BakerProductPage> {
       }
     }
 
-    // Save merged products
-    await prefs.setString('selected_products', jsonEncode(existingProducts));
+    await prefs.setString(
+        'selected_products', jsonEncode(existingProducts));
+
     await prefs.setInt(
       'total_products_qty',
       existingProducts.fold<int>(
           0, (sum, p) => sum + ((p['qty'] ?? 0) as int)),
     );
 
-    // Reset qty in current page
-    for (var p in products) p["qty"] = 0;
+    for (var p in products) {
+      p["qty"] = 0;
+    }
 
-    Navigator.pop(context); // close loader
+    Navigator.pop(context);
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(builder: (_) => const Dashboard()),
@@ -155,7 +149,8 @@ class _BakerProductPageState extends State<BakerProductPage> {
         child: products.isEmpty
             ? const Center(child: Text("No products found"))
             : ListView.builder(
-          padding: const EdgeInsets.fromLTRB(12, 12, 12, 100),
+          padding:
+          const EdgeInsets.fromLTRB(12, 12, 12, 100),
           itemCount: products.length,
           itemBuilder: (context, index) =>
               _productCard(products[index]),
@@ -176,31 +171,28 @@ class _BakerProductPageState extends State<BakerProductPage> {
       child: Row(
         children: [
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text("$totalItems items selected",
-                    style: const TextStyle(color: Colors.black54)),
-                const SizedBox(height: 4),
-                Text("Rs: ${totalPrice.toStringAsFixed(2)}/-",
-                    style: const TextStyle(
-                        fontSize: 20, fontWeight: FontWeight.bold)),
-              ],
+            child: Text(
+              "$totalItems items selected",
+              style: const TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+              ),
             ),
           ),
           ElevatedButton(
             onPressed: totalItems == 0 ? null : _save,
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.blue,
-              padding:
-              const EdgeInsets.symmetric(horizontal: 26, vertical: 14),
+              padding: const EdgeInsets.symmetric(
+                  horizontal: 26, vertical: 14),
               shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(14)),
             ),
             child: const Text(
               "Save",
-              style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+              style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w600),
             ),
           )
         ],
@@ -216,7 +208,9 @@ class _BakerProductPageState extends State<BakerProductPage> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 10)],
+        boxShadow: const [
+          BoxShadow(color: Colors.black12, blurRadius: 10)
+        ],
       ),
       child: Row(
         children: [
@@ -232,15 +226,17 @@ class _BakerProductPageState extends State<BakerProductPage> {
             )
                 : CircleAvatar(
               radius: 32,
-              backgroundColor: Colors.blueAccent.withOpacity(0.2),
+              backgroundColor:
+              Colors.blueAccent.withOpacity(0.2),
               child: Text(
                 product["name"].isNotEmpty
                     ? product["name"][0].toUpperCase()
                     : "?",
                 style: const TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.blueAccent),
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.blueAccent,
+                ),
               ),
             ),
           ),
@@ -249,28 +245,23 @@ class _BakerProductPageState extends State<BakerProductPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(product["name"],
-                    style: const TextStyle(
-                        fontSize: 17, fontWeight: FontWeight.w600)),
+                Text(
+                  product["name"],
+                  style: const TextStyle(
+                      fontSize: 17,
+                      fontWeight: FontWeight.w600),
+                ),
                 const SizedBox(height: 4),
                 Text(
                   product["detail"] ?? "",
-                  style: const TextStyle(fontSize: 14, color: Colors.black54),
+                  style: const TextStyle(
+                      fontSize: 14,
+                      color: Colors.black54),
                 ),
               ],
             ),
           ),
-          Column(
-            children: [
-              Text(
-                "Rs: ${product["price"]}/-",
-                style:
-                const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-              ),
-              const SizedBox(height: 6),
-              _quantitySelector(product),
-            ],
-          ),
+          _quantitySelector(product),
         ],
       ),
     );
@@ -283,19 +274,29 @@ class _BakerProductPageState extends State<BakerProductPage> {
         _qtyButton(
           icon: Icons.remove,
           enabled: (product["qty"] ?? 0) > 0,
-          onTap: () =>
-              setState(() => product["qty"] = (product["qty"] ?? 0) - 1),
+          onTap: () {
+            setState(() {
+              if ((product["qty"] ?? 0) > 0) {
+                product["qty"] = product["qty"] - 1;
+              }
+            });
+          },
         ),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 8),
-          child: Text("${product["qty"] ?? 0}",
-              style: const TextStyle(fontWeight: FontWeight.w600)),
+          child: Text(
+            "${product["qty"] ?? 0}",
+            style: const TextStyle(fontWeight: FontWeight.w600),
+          ),
         ),
         _qtyButton(
           icon: Icons.add,
           enabled: true,
-          onTap: () =>
-              setState(() => product["qty"] = (product["qty"] ?? 0) + 1),
+          onTap: () {
+            setState(() {
+              product["qty"] = (product["qty"] ?? 0) + 1;
+            });
+          },
         ),
       ],
     );
