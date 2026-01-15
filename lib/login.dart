@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import '/dashboard.dart';
-import '/user_dashboard.dart';
+
+import '/dashboard.dart';               // User Dashboard
+import 'admin/admin_dashboard.dart';          // Admin Dashboard
+
 import '../apis/api_services.dart';
 import '../utils/token_storage.dart';
 
@@ -15,6 +17,7 @@ class Login extends StatefulWidget {
 class _LoginState extends State<Login> {
   final TextEditingController emailController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
+
   bool _obscurePassword = true;
   bool _isLoading = false;
 
@@ -24,35 +27,44 @@ class _LoginState extends State<Login> {
     _checkLoginStatus();
   }
 
+  // =========================
   // Check if already logged in
+  // =========================
   void _checkLoginStatus() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
+    final prefs = await SharedPreferences.getInstance();
     int? roleId = prefs.getInt('role_id');
 
-    if (roleId != null) {
+    if (roleId != null && mounted) {
       _navigateToDashboard(roleId);
     }
   }
 
+  // =========================
   // Navigate based on role
+  // role_id = 1 → Admin
+  // =========================
   void _navigateToDashboard(int roleId) {
     if (roleId == 1) {
+      // ADMIN
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => const AdminDashboard()),
+      );
+    } else {
+      // USER
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (_) => const Dashboard()),
       );
-    } else {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (_) => const UserDashboard()),
-      );
     }
   }
 
-  // Login API using ApiService
+  // =========================
+  // Login API
+  // =========================
   void _login() async {
-    String email = emailController.text.trim();
-    String password = passwordController.text.trim();
+    final email = emailController.text.trim();
+    final password = passwordController.text.trim();
 
     if (email.isEmpty || password.isEmpty) {
       _showSnackBar("Please enter email and password");
@@ -68,23 +80,22 @@ class _LoginState extends State<Login> {
       });
 
       // Save token
-      String token = data['token'] ?? '';
+      final token = data['token'] ?? '';
       await TokenStorage.saveToken(token);
 
       // Save user info
       final user = data['user'];
-      int userId = user['id'];
-      int roleId = user['role_id'];
-      String name = user['name'] ?? '';
-      String userEmail = user['email'] ?? '';
+      final int userId = user['id'];
+      final int roleId = user['role_id'];
+      final String name = user['name'] ?? '';
+      final String userEmail = user['email'] ?? '';
 
-      SharedPreferences prefs = await SharedPreferences.getInstance();
+      final prefs = await SharedPreferences.getInstance();
       await prefs.setInt('user_id', userId);
       await prefs.setInt('role_id', roleId);
       await prefs.setString('name', name);
       await prefs.setString('email', userEmail);
 
-      // Navigate based on role
       _navigateToDashboard(roleId);
     } catch (e) {
       _showSnackBar("Login failed: $e");
@@ -93,13 +104,14 @@ class _LoginState extends State<Login> {
     }
   }
 
-  // Show error message
+  // =========================
+  // SnackBar
+  // =========================
   void _showSnackBar(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         behavior: SnackBarBehavior.floating,
-        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        margin: const EdgeInsets.all(16),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         backgroundColor: Colors.red.shade600,
         content: Row(
@@ -110,16 +122,21 @@ class _LoginState extends State<Login> {
               child: Text(
                 message,
                 style: const TextStyle(
-                    color: Colors.white, fontSize: 16, fontWeight: FontWeight.w500),
+                  color: Colors.white,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w500,
+                ),
               ),
             ),
           ],
         ),
-        duration: const Duration(seconds: 3),
       ),
     );
   }
 
+  // =========================
+  // UI
+  // =========================
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -127,7 +144,9 @@ class _LoginState extends State<Login> {
         child: Card(
           elevation: 10,
           margin: const EdgeInsets.symmetric(horizontal: 24),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
           child: Padding(
             padding: const EdgeInsets.all(20),
             child: Column(
@@ -143,7 +162,9 @@ class _LoginState extends State<Login> {
                   decoration: InputDecoration(
                     labelText: "Email",
                     prefixIcon: const Icon(Icons.email),
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
                   ),
                 ),
                 const SizedBox(height: 20),
@@ -155,12 +176,18 @@ class _LoginState extends State<Login> {
                     prefixIcon: const Icon(Icons.lock),
                     suffixIcon: IconButton(
                       icon: Icon(
-                          _obscurePassword ? Icons.visibility_off : Icons.visibility),
+                        _obscurePassword
+                            ? Icons.visibility_off
+                            : Icons.visibility,
+                      ),
                       onPressed: () {
-                        setState(() => _obscurePassword = !_obscurePassword);
+                        setState(() =>
+                        _obscurePassword = !_obscurePassword);
                       },
                     ),
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
                   ),
                 ),
                 const SizedBox(height: 20),
@@ -168,15 +195,20 @@ class _LoginState extends State<Login> {
                   width: double.infinity,
                   height: 50,
                   child: ElevatedButton(
+                    onPressed: _isLoading ? null : _login,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.blueAccent,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
                     ),
-                    onPressed: _isLoading ? null : _login,
                     child: Text(
                       _isLoading ? "Please wait..." : "Login",
                       style: const TextStyle(
-                          color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+                        color: Colors.white,
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ),
                 ),

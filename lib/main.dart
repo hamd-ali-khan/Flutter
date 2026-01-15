@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:my_app/admin/admin_dashboard.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '/login.dart';
 import '/dashboard.dart';
-import '/user_dashboard.dart';
+import 'package:my_app/admin/admin_dashboard.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -14,9 +15,9 @@ void main() async {
   Widget initialScreen;
 
   if (role == 'admin') {
-    initialScreen = const Dashboard();
+    initialScreen = const AdminDashboard();
   } else if (role == 'user') {
-    initialScreen = const UserDashboard();
+    initialScreen = const Dashboard();
   } else {
     initialScreen = const Login();
   }

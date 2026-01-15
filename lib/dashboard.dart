@@ -365,7 +365,7 @@ class _DashboardState extends State<Dashboard> {
               decoration: const BoxDecoration(color: Colors.blueAccent),
             ),
             ListTile(
-              leading: const Icon(Icons.home),
+              leading: const Icon(Icons.dashboard),
               title: const Text("Home"),
               onTap: () {
                 Navigator.pop(context);
