@@ -4,7 +4,7 @@ import 'package:http/http.dart' as http;
 import 'package:my_app/utils/token_storage.dart';
 
 class ApiService {
-  static const String baseUrl = "http://192.168.10.19:8000/api/";
+  static const String baseUrl = "http://192.168.10.51:8000/api/";
 
   // ================= GET =================
   static Future<dynamic> get(String endpoint) async {

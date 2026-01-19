@@ -12,6 +12,7 @@ class _AdminUsersPageState extends State<AdminUsersPage> {
   final TextEditingController nameController = TextEditingController();
   final TextEditingController emailController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
+  final TextEditingController searchController = TextEditingController();
 
   int? selectedRoleId;
   int? selectedBranchId;
@@ -20,6 +21,7 @@ class _AdminUsersPageState extends State<AdminUsersPage> {
   bool _isFetching = true;
 
   List<Map<String, dynamic>> users = [];
+  List<Map<String, dynamic>> filteredUsers = [];
   List<Map<String, dynamic>> roles = [];
   List<Map<String, dynamic>> branches = [];
 
@@ -33,11 +35,23 @@ class _AdminUsersPageState extends State<AdminUsersPage> {
     _fetchUsers();
   }
 
-  void clearForm() {
-    nameController.clear();
-    emailController.clear();
-    passwordController.clear();
-    editingIndex = null;
+  // ================= SEARCH FILTER =================
+  void _filterUsers(String query) {
+    if (query.isEmpty) {
+      setState(() => filteredUsers = List.from(users));
+      return;
+    }
+
+    final q = query.toLowerCase();
+    setState(() {
+      filteredUsers = users.where((u) {
+        final name = (u["name"] ?? "").toString().toLowerCase();
+        final email = (u["email"] ?? "").toString().toLowerCase();
+        final role = (u["role"]?["title"] ?? "").toString().toLowerCase();
+        final branch = (u["branch"]?["branch_name"] ?? "").toString().toLowerCase();
+        return name.contains(q) || email.contains(q) || role.contains(q) || branch.contains(q);
+      }).toList();
+    });
   }
 
   // ================= FETCH USERS =================
@@ -46,13 +60,12 @@ class _AdminUsersPageState extends State<AdminUsersPage> {
     try {
       final response = await ApiService.get("users");
       List data = [];
-      if (response is Map && response.containsKey("data")) {
-        data = response["data"];
-      } else if (response is List) {
-        data = response;
-      }
+      if (response is Map && response.containsKey("data")) data = response["data"];
+      else if (response is List) data = response;
+
       setState(() {
         users = List<Map<String, dynamic>>.from(data);
+        filteredUsers = List.from(users);
       });
     } catch (e) {
       _showSnackBar("Failed to fetch users: $e");
@@ -66,11 +79,9 @@ class _AdminUsersPageState extends State<AdminUsersPage> {
     try {
       final response = await ApiService.get("roles");
       List data = [];
-      if (response is Map && response.containsKey("data")) {
-        data = response["data"];
-      } else if (response is List) {
-        data = response;
-      }
+      if (response is Map && response.containsKey("data")) data = response["data"];
+      else if (response is List) data = response;
+
       setState(() {
         roles = List<Map<String, dynamic>>.from(data);
         if (roles.isNotEmpty) selectedRoleId = int.parse(roles.first["id"].toString());
@@ -85,11 +96,9 @@ class _AdminUsersPageState extends State<AdminUsersPage> {
     try {
       final response = await ApiService.get("branches");
       List data = [];
-      if (response is Map && response.containsKey("data")) {
-        data = response["data"];
-      } else if (response is List) {
-        data = response;
-      }
+      if (response is Map && response.containsKey("data")) data = response["data"];
+      else if (response is List) data = response;
+
       setState(() {
         branches = List<Map<String, dynamic>>.from(data);
         if (branches.isNotEmpty) selectedBranchId = int.parse(branches.first["id"].toString());
@@ -123,25 +132,22 @@ class _AdminUsersPageState extends State<AdminUsersPage> {
     try {
       Map<String, dynamic> response;
       if (editingIndex == null) {
-        // CREATE NEW USER
         response = await ApiService.post("new_user", body);
         setState(() {
           users.add(Map<String, dynamic>.from(response["data"]));
         });
-        Navigator.pop(context);
-        clearForm();
-        _showSnackBar(response["message"] ?? "User created successfully", isError: false);
       } else {
-        // UPDATE EXISTING USER
         final id = users[editingIndex!]["id"];
         response = await ApiService.post("update_user/$id", body);
         setState(() {
           users[editingIndex!] = Map<String, dynamic>.from(response["data"]);
         });
-        Navigator.pop(context);
-        clearForm();
-        _showSnackBar(response["message"] ?? "User updated successfully", isError: false);
       }
+
+      _filterUsers(searchController.text); // Update filtered list
+      Navigator.pop(context);
+      clearForm();
+      _showSnackBar(response["message"] ?? "Success", isError: false);
     } catch (e) {
       _showSnackBar("Failed to save user: $e");
     } finally {
@@ -152,51 +158,38 @@ class _AdminUsersPageState extends State<AdminUsersPage> {
   // ================= DELETE USER =================
   Future<void> _softDeleteUser(int index) async {
     final id = users[index]["id"];
-
     try {
-      // Call your delete API endpoint
       await ApiService.delete("delete_user/$id");
-
       setState(() {
         users.removeAt(index);
       });
-
+      _filterUsers(searchController.text); // Update filtered list
       _showSnackBar("User removed successfully", isError: false);
     } catch (e) {
       _showSnackBar("Failed to remove user: $e");
     }
   }
 
-// ================= DELETE CONFIRMATION =================
   void _confirmDeleteUser(int index) {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text("Remove User"),
-        content: const Text(
-          "Are you sure you want to remove this user?",
-        ),
+        content: const Text("Are you sure you want to remove this user?"),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text("Cancel"),
-          ),
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("Cancel")),
           ElevatedButton(
             style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
             onPressed: () {
               Navigator.pop(ctx);
-              _softDeleteUser(index); // Calls API now
+              _softDeleteUser(index);
             },
-            child: const Text(
-              "Remove",
-              style: TextStyle(color: Colors.white),
-            ),
+            child: const Text("Remove", style: TextStyle(color: Colors.white)),
           ),
         ],
       ),
     );
   }
-
 
   // ================= OPEN MODAL =================
   void _openUserModal({int? index}) {
@@ -239,9 +232,7 @@ class _AdminUsersPageState extends State<AdminUsersPage> {
               const SizedBox(height: 16),
               DropdownButtonFormField<int>(
                 value: selectedBranchId,
-                items: branches
-                    .map((b) => DropdownMenuItem(value: int.parse(b["id"].toString()), child: Text(b["branch_name"].toString())))
-                    .toList(),
+                items: branches.map((b) => DropdownMenuItem(value: int.parse(b["id"].toString()), child: Text(b["branch_name"].toString()))).toList(),
                 onChanged: (v) => setState(() => selectedBranchId = v),
                 decoration: _inputDecoration("Branch"),
               ),
@@ -275,36 +266,68 @@ class _AdminUsersPageState extends State<AdminUsersPage> {
         elevation: 6,
         shadowColor: Colors.grey,
       ),
-      body: _isFetching
-          ? const Center(child: CircularProgressIndicator())
-          : users.isEmpty
-          ? const Center(child: Text("No users found"))
-          : ListView.builder(
-        padding: const EdgeInsets.all(12),
-        itemCount: users.length,
-        itemBuilder: (_, i) {
-          final u = users[i];
-          return Container(
-            margin: const EdgeInsets.symmetric(vertical: 8),
-            decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), boxShadow: [BoxShadow(color: Colors.grey.withOpacity(0.3), spreadRadius: 2, blurRadius: 8, offset: const Offset(0, 3))]),
-            child: ListTile(
-              contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-              title: Text(u["name"] ?? "", style: const TextStyle(fontWeight: FontWeight.bold)),
-              subtitle: Text("${u["email"] ?? ""} | ${u["role"]?["title"] ?? ""} | ${u["branch"]?["branch_name"] ?? ""}"),
-              trailing: PopupMenuButton<String>(
-                icon: const Icon(Icons.more_vert, color: Colors.blue),
-                onSelected: (value) {
-                  if (value == "edit") _openUserModal(index: i);
-                  if (value == "delete") _confirmDeleteUser(i);
-                },
-                itemBuilder: (_) => const [
-                  PopupMenuItem(value: "edit", child: Text("Edit")),
-                  PopupMenuItem(value: "delete", child: Text("Delete")),
-                ],
+      body: Column(
+        children: [
+          // ===== SEARCH BAR + FILTER ICON =====
+          Padding(
+            padding: const EdgeInsets.all(12.0),
+            child: TextField(
+              controller: searchController,
+              onChanged: _filterUsers,
+              decoration: InputDecoration(
+                hintText: "Search users...",
+                prefixIcon: const Icon(Icons.search),
+                suffixIcon: IconButton(
+                  icon: const Icon(Icons.filter_list),
+                  onPressed: () {
+                    // TODO: Add filter logic or modal
+                  },
+                ),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                focusedBorder: OutlineInputBorder(borderSide: const BorderSide(color: Colors.blue), borderRadius: BorderRadius.circular(12)),
               ),
             ),
-          );
-        },
+          ),
+
+          // ===== USERS LIST =====
+          Expanded(
+            child: _isFetching
+                ? const Center(child: CircularProgressIndicator())
+                : filteredUsers.isEmpty
+                ? const Center(child: Text("No users found"))
+                : ListView.builder(
+              padding: const EdgeInsets.all(12),
+              itemCount: filteredUsers.length,
+              itemBuilder: (_, i) {
+                final u = filteredUsers[i];
+                return Container(
+                  margin: const EdgeInsets.symmetric(vertical: 8),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(16),
+                    boxShadow: [BoxShadow(color: Colors.grey.withOpacity(0.3), spreadRadius: 2, blurRadius: 8, offset: const Offset(0, 3))],
+                  ),
+                  child: ListTile(
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                    title: Text(u["name"] ?? "", style: const TextStyle(fontWeight: FontWeight.bold)),
+                    subtitle: Text("${u["email"] ?? ""} | ${u["role"]?["title"] ?? ""} | ${u["branch"]?["branch_name"] ?? ""}"),
+                    trailing: PopupMenuButton<String>(
+                      icon: const Icon(Icons.more_vert, color: Colors.blue),
+                      onSelected: (value) {
+                        if (value == "edit") _openUserModal(index: i);
+                        if (value == "delete") _confirmDeleteUser(i);
+                      },
+                      itemBuilder: (_) => const [
+                        PopupMenuItem(value: "edit", child: Text("Edit")),
+                        PopupMenuItem(value: "delete", child: Text("Delete")),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+        ],
       ),
       floatingActionButton: FloatingActionButton(
         backgroundColor: Colors.blue,
@@ -325,6 +348,13 @@ class _AdminUsersPageState extends State<AdminUsersPage> {
       border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
       focusedBorder: OutlineInputBorder(borderSide: const BorderSide(color: Colors.blue), borderRadius: BorderRadius.circular(10)),
     );
+  }
+
+  void clearForm() {
+    nameController.clear();
+    emailController.clear();
+    passwordController.clear();
+    editingIndex = null;
   }
 
   void _showSnackBar(String msg, {bool isError = true}) {

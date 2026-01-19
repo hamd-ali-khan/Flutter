@@ -44,37 +44,31 @@ class _AdminAddProductPageState extends State<AdminAddProductPage> {
   Future<void> saveProduct() async {
     if (!_formKey.currentState!.validate()) return;
 
-    final body = {"name": nameController.text, "detail": detailController.text};
+    final body = {
+      "name": nameController.text,
+      "detail": detailController.text
+    };
 
     try {
       Map<String, dynamic> response;
 
       if (editingIndex == null) {
-        // ADD NEW PRODUCT
         response = await ApiService.post("new_product", body);
-
         setState(() {
           products.add(Map<String, dynamic>.from(response['data']));
         });
-
-        Navigator.pop(context);
-        clearForm();
-
-        _showMessage(response['message'] ?? "Product added successfully");
       } else {
-        // UPDATE EXISTING PRODUCT
         final id = products[editingIndex!]["id"];
         response = await ApiService.post("update_product/$id", body);
-
         setState(() {
-          products[editingIndex!] = Map<String, dynamic>.from(response['data']);
+          products[editingIndex!] =
+          Map<String, dynamic>.from(response['data']);
         });
-
-        Navigator.pop(context);
-        clearForm();
-
-        _showMessage(response['message'] ?? "Product updated successfully");
       }
+
+      Navigator.pop(context);
+      clearForm();
+      _showMessage(response['message'] ?? "Success");
     } catch (e) {
       _showMessage("Failed to save product: $e", isError: true);
     }
@@ -92,18 +86,16 @@ class _AdminAddProductPageState extends State<AdminAddProductPage> {
     try {
       final id = products[index]["id"];
       await ApiService.delete("delete_product/$id");
-
       setState(() {
         products.removeAt(index);
       });
-
       _showMessage("Product deleted successfully");
     } catch (e) {
       _showMessage("Failed to delete product: $e", isError: true);
     }
   }
 
-  // ================= OPEN MODAL FORM =================
+  // ================= OPEN MODAL =================
   void openProductForm({int? index}) {
     if (index != null) {
       editingIndex = index;
@@ -134,23 +126,15 @@ class _AdminAddProductPageState extends State<AdminAddProductPage> {
                 style: const TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
-                  color: Colors.blue, // Title color
+                  color: Colors.blue,
                 ),
               ),
               const SizedBox(height: 12),
               TextFormField(
                 controller: nameController,
-                decoration: InputDecoration(
+                decoration: const InputDecoration(
                   labelText: "Product Name",
-                  border: OutlineInputBorder(
-                    borderSide: const BorderSide(color: Colors.blue),
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderSide: const BorderSide(color: Colors.blue),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderSide: const BorderSide(color: Colors.blue, width: 2),
-                  ),
+                  border: OutlineInputBorder(),
                 ),
                 validator: (v) => v == null || v.isEmpty ? "Required" : null,
               ),
@@ -158,17 +142,9 @@ class _AdminAddProductPageState extends State<AdminAddProductPage> {
               TextFormField(
                 controller: detailController,
                 maxLines: 3,
-                decoration: InputDecoration(
+                decoration: const InputDecoration(
                   labelText: "Product Detail",
-                  border: OutlineInputBorder(
-                    borderSide: const BorderSide(color: Colors.blue),
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderSide: const BorderSide(color: Colors.blue),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderSide: const BorderSide(color: Colors.blue, width: 2),
-                  ),
+                  border: OutlineInputBorder(),
                 ),
               ),
               const SizedBox(height: 16),
@@ -177,14 +153,13 @@ class _AdminAddProductPageState extends State<AdminAddProductPage> {
                 height: 50,
                 child: ElevatedButton(
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.blue, // Blue background
-                    foregroundColor: Colors.white, // White text
+                    backgroundColor: Colors.blue,
                   ),
                   onPressed: saveProduct,
                   child: Text(
                     editingIndex == null ? "Add Product" : "Update Product",
                     style: const TextStyle(
-                      color: Colors.white, // White text
+                      color: Colors.white,
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
                     ),
@@ -198,27 +173,24 @@ class _AdminAddProductPageState extends State<AdminAddProductPage> {
     );
   }
 
-  // ================= MESSAGE MODAL =================
+  // ================= MESSAGE =================
   void _showMessage(String message, {bool isError = false}) {
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
-        title: isError ? const Text("Error") : const Text("Success"),
+        title: Text(isError ? "Error" : "Success"),
         content: Text(message),
         actions: [
           ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.blue, // Blue button
-            ),
             onPressed: () => Navigator.pop(context),
-            child: const Text("OK", style: TextStyle(color: Colors.white)),
+            child: const Text("OK"),
           ),
         ],
       ),
     );
   }
 
-  // ================= CONFIRMATION MODAL =================
+  // ================= CONFIRM =================
   Future<bool> _showConfirmationDialog({
     required String title,
     required String message,
@@ -234,11 +206,8 @@ class _AdminAddProductPageState extends State<AdminAddProductPage> {
             child: const Text("Cancel"),
           ),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.blue, // Blue button
-            ),
             onPressed: () => Navigator.pop(context, true),
-            child: const Text("Yes", style: TextStyle(color: Colors.white)),
+            child: const Text("Yes"),
           ),
         ],
       ),
@@ -252,76 +221,60 @@ class _AdminAddProductPageState extends State<AdminAddProductPage> {
     return Scaffold(
       appBar: AppBar(
         title: const Text("Manage Products"),
-        centerTitle: true,
         backgroundColor: Colors.blue,
         foregroundColor: Colors.white,
-        iconTheme: const IconThemeData(color: Colors.white),
-        elevation: 6,
-        // Stronger shadow
-        shadowColor: Colors.grey,
-        // Grey shadow
-        titleTextStyle: const TextStyle(
-          color: Colors.white, // Title color
-          fontSize: 20, // Font size 20
-          fontWeight: FontWeight.bold, // Bold font
-        ),
+        centerTitle: true,
+        elevation: 6,                 // Shadow strength
+        shadowColor: Colors.grey,     // Grey shadow
       ),
-      body: products.isEmpty
-          ? const Center(
-              child: Text(
-                "No products added yet.\nTap + to add product",
-                textAlign: TextAlign.center,
-                style: TextStyle(color: Colors.grey),
-              ),
-            )
-          : ListView.builder(
-              padding: const EdgeInsets.fromLTRB(12, 12, 12, 90),
-              itemCount: products.length,
-              itemBuilder: (context, index) {
-                final p = products[index];
-                final String name = p["name"] ?? "";
-                final String initial = name.isNotEmpty
-                    ? name[0].toUpperCase()
-                    : "?";
 
-                return Card(
-                  margin: const EdgeInsets.only(bottom: 10),
-                  child: ListTile(
-                    leading: CircleAvatar(
-                      backgroundColor: Colors.blueAccent.withOpacity(0.2),
-                      child: Text(
-                        initial,
-                        style: const TextStyle(
-                          color: Colors.blue,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 20,
-                        ),
-                      ),
-                    ),
-                    title: Text(name),
-                    subtitle: Text(
-                      p["detail"] ?? "",
-                      style: const TextStyle(color: Colors.grey),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    trailing: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        IconButton(
-                          icon: const Icon(Icons.edit, color: Colors.blue),
-                          onPressed: () => openProductForm(index: index),
-                        ),
-                        IconButton(
-                          icon: const Icon(Icons.delete, color: Colors.red),
-                          onPressed: () => deleteProduct(index),
-                        ),
-                      ],
-                    ),
+      body: ListView.builder(
+        padding: const EdgeInsets.fromLTRB(12, 12, 12, 90),
+        itemCount: products.length,
+        itemBuilder: (context, index) {
+          final p = products[index];
+          final name = p["name"] ?? "";
+          final initial = name.isNotEmpty ? name[0].toUpperCase() : "?";
+
+          return Card(
+            margin: const EdgeInsets.only(bottom: 10),
+            child: ListTile(
+              contentPadding: const EdgeInsets.symmetric(horizontal: 12),
+              leading: CircleAvatar(
+                backgroundColor: Colors.blueAccent.withOpacity(0.2),
+                child: Text(
+                  initial,
+                  style: const TextStyle(
+                    color: Colors.blue,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 20,
                   ),
-                );
-              },
+                ),
+              ),
+              title: Text(name),
+              subtitle: Text(
+                p["detail"] ?? "",
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(color: Colors.grey),
+              ),
+              trailing: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.edit, color: Colors.blue),
+                    onPressed: () => openProductForm(index: index),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.delete, color: Colors.red),
+                    onPressed: () => deleteProduct(index),
+                  ),
+                ],
+              ),
             ),
+          );
+        },
+      ),
       floatingActionButton: FloatingActionButton(
         backgroundColor: Colors.blue,
         onPressed: () {
