@@ -36,8 +36,7 @@ class _AdminAddProductPageState extends State<AdminAddProductPage> {
         products = List<Map<String, dynamic>>.from(data);
       });
     } catch (e) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text("Failed to fetch products: $e")));
+      _showMessage("Failed to fetch products: $e", isError: true);
     }
   }
 
@@ -51,46 +50,59 @@ class _AdminAddProductPageState extends State<AdminAddProductPage> {
     };
 
     try {
+      Map<String, dynamic> response;
+
       if (editingIndex == null) {
-        // CREATE NEW
-        final newProduct = await ApiService.post("products", body);
+        // ADD NEW PRODUCT
+        response = await ApiService.post("new_product", body);
+
         setState(() {
-          products.add(Map<String, dynamic>.from(newProduct));
+          products.add(Map<String, dynamic>.from(response['data']));
         });
+
+        Navigator.pop(context);
+        clearForm();
+
+        _showMessage(response['message'] ?? "Product added successfully");
       } else {
-        // UPDATE EXISTING
+        // UPDATE EXISTING PRODUCT
         final id = products[editingIndex!]["id"];
-        final updatedProduct = await ApiService.put("products/$id", body);
+        response = await ApiService.post("update_product/$id", body);
+
         setState(() {
-          products[editingIndex!] = Map<String, dynamic>.from(updatedProduct);
+          products[editingIndex!] = Map<String, dynamic>.from(response['data']);
         });
+
+        Navigator.pop(context);
+        clearForm();
+
+        _showMessage(response['message'] ?? "Product updated successfully");
       }
-
-      Navigator.pop(context);
-      clearForm();
-
-      ScaffoldMessenger.of(context)
-          .showSnackBar(const SnackBar(content: Text("Product saved successfully")));
     } catch (e) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text("Failed to save product: $e")));
+      _showMessage("Failed to save product: $e", isError: true);
     }
   }
 
   // ================= DELETE PRODUCT =================
   Future<void> deleteProduct(int index) async {
+    final confirm = await _showConfirmationDialog(
+      title: "Delete Product",
+      message: "Are you sure you want to delete this product?",
+    );
+
+    if (!confirm) return;
+
     try {
       final id = products[index]["id"];
-      await ApiService.delete("products/$id");
+      await ApiService.delete("delete_product/$id");
+
       setState(() {
         products.removeAt(index);
       });
 
-      ScaffoldMessenger.of(context)
-          .showSnackBar(const SnackBar(content: Text("Product deleted")));
+      _showMessage("Product deleted successfully");
     } catch (e) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text("Failed to delete product: $e")));
+      _showMessage("Failed to delete product: $e", isError: true);
     }
   }
 
@@ -108,58 +120,113 @@ class _AdminAddProductPageState extends State<AdminAddProductPage> {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      builder: (context) {
-        return Padding(
-          padding: EdgeInsets.only(
-            left: 16,
-            right: 16,
-            top: 16,
-            bottom: MediaQuery.of(context).viewInsets.bottom + 16,
+      builder: (context) => Padding(
+        padding: EdgeInsets.only(
+          left: 16,
+          right: 16,
+          top: 16,
+          bottom: MediaQuery.of(context).viewInsets.bottom + 16,
+        ),
+        child: Form(
+          key: _formKey,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                editingIndex == null ? "Add New Product" : "Edit Product",
+                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 12),
+              TextFormField(
+                controller: nameController,
+                decoration: const InputDecoration(
+                  labelText: "Product Name",
+                  border: OutlineInputBorder(),
+                ),
+                validator: (v) => v == null || v.isEmpty ? "Required" : null,
+              ),
+              const SizedBox(height: 12),
+              TextFormField(
+                controller: detailController,
+                maxLines: 3,
+                decoration: const InputDecoration(
+                  labelText: "Product Detail",
+                  border: OutlineInputBorder(),
+                ),
+              ),
+              const SizedBox(height: 16),
+              SizedBox(
+                width: double.infinity,
+                height: 50,
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(backgroundColor: Colors.blue),
+                  onPressed: saveProduct,
+                  child: Text(
+                    editingIndex == null ? "Add Product" : "Update Product",
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
-          child: Form(
-            key: _formKey,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  editingIndex == null ? "Add New Product" : "Edit Product",
-                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 12),
-                TextFormField(
-                  controller: nameController,
-                  decoration: const InputDecoration(
-                    labelText: "Product Name",
-                    border: OutlineInputBorder(),
-                  ),
-                  validator: (v) => v == null || v.isEmpty ? "Required" : null,
-                ),
-                const SizedBox(height: 12),
-                TextFormField(
-                  controller: detailController,
-                  maxLines: 3,
-                  decoration: const InputDecoration(
-                    labelText: "Product Detail",
-                    border: OutlineInputBorder(),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                SizedBox(
-                  width: double.infinity,
-                  height: 50,
-                  child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(backgroundColor: Colors.blue),
-                    onPressed: saveProduct,
-                    child: Text(editingIndex == null ? "Add Product" : "Update Product"),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        );
-      },
+        ),
+      ),
     );
   }
+
+  // ================= MESSAGE MODAL =================
+  void _showMessage(String message, {bool isError = false}) {
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: isError ? const Text("Error") : const Text("Success"),
+        content: Text(message),
+        actions: [
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.blue, // Blue button
+            ),
+            onPressed: () => Navigator.pop(context),
+            child: const Text("OK", style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+  }
+
+
+  // ================= CONFIRMATION MODAL =================
+  Future<bool> _showConfirmationDialog({
+    required String title,
+    required String message,
+  }) async {
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: Text(title),
+        content: Text(message),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text("Cancel"),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.blue, // Blue button
+            ),
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text("Yes", style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+    return result ?? false;
+  }
+
 
   // ================= UI =================
   @override
@@ -180,7 +247,7 @@ class _AdminAddProductPageState extends State<AdminAddProductPage> {
         ),
       )
           : ListView.builder(
-        padding: const EdgeInsets.all(12),
+        padding: const EdgeInsets.fromLTRB(12, 12, 12, 90),
         itemCount: products.length,
         itemBuilder: (context, index) {
           final p = products[index];
