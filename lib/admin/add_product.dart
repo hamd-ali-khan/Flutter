@@ -44,10 +44,7 @@ class _AdminAddProductPageState extends State<AdminAddProductPage> {
   Future<void> saveProduct() async {
     if (!_formKey.currentState!.validate()) return;
 
-    final body = {
-      "name": nameController.text,
-      "detail": detailController.text,
-    };
+    final body = {"name": nameController.text, "detail": detailController.text};
 
     try {
       Map<String, dynamic> response;
@@ -134,14 +131,26 @@ class _AdminAddProductPageState extends State<AdminAddProductPage> {
             children: [
               Text(
                 editingIndex == null ? "Add New Product" : "Edit Product",
-                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.blue, // Title color
+                ),
               ),
               const SizedBox(height: 12),
               TextFormField(
                 controller: nameController,
-                decoration: const InputDecoration(
+                decoration: InputDecoration(
                   labelText: "Product Name",
-                  border: OutlineInputBorder(),
+                  border: OutlineInputBorder(
+                    borderSide: const BorderSide(color: Colors.blue),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderSide: const BorderSide(color: Colors.blue),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderSide: const BorderSide(color: Colors.blue, width: 2),
+                  ),
                 ),
                 validator: (v) => v == null || v.isEmpty ? "Required" : null,
               ),
@@ -149,9 +158,17 @@ class _AdminAddProductPageState extends State<AdminAddProductPage> {
               TextFormField(
                 controller: detailController,
                 maxLines: 3,
-                decoration: const InputDecoration(
+                decoration: InputDecoration(
                   labelText: "Product Detail",
-                  border: OutlineInputBorder(),
+                  border: OutlineInputBorder(
+                    borderSide: const BorderSide(color: Colors.blue),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderSide: const BorderSide(color: Colors.blue),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderSide: const BorderSide(color: Colors.blue, width: 2),
+                  ),
                 ),
               ),
               const SizedBox(height: 16),
@@ -159,12 +176,15 @@ class _AdminAddProductPageState extends State<AdminAddProductPage> {
                 width: double.infinity,
                 height: 50,
                 child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(backgroundColor: Colors.blue),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.blue, // Blue background
+                    foregroundColor: Colors.white, // White text
+                  ),
                   onPressed: saveProduct,
                   child: Text(
                     editingIndex == null ? "Add Product" : "Update Product",
                     style: const TextStyle(
-                      color: Colors.white,
+                      color: Colors.white, // White text
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
                     ),
@@ -198,7 +218,6 @@ class _AdminAddProductPageState extends State<AdminAddProductPage> {
     );
   }
 
-
   // ================= CONFIRMATION MODAL =================
   Future<bool> _showConfirmationDialog({
     required String title,
@@ -227,7 +246,6 @@ class _AdminAddProductPageState extends State<AdminAddProductPage> {
     return result ?? false;
   }
 
-
   // ================= UI =================
   @override
   Widget build(BuildContext context) {
@@ -235,63 +253,75 @@ class _AdminAddProductPageState extends State<AdminAddProductPage> {
       appBar: AppBar(
         title: const Text("Manage Products"),
         centerTitle: true,
-        backgroundColor: Colors.white,
-        foregroundColor: Colors.black,
+        backgroundColor: Colors.blue,
+        foregroundColor: Colors.white,
+        iconTheme: const IconThemeData(color: Colors.white),
+        elevation: 6,
+        // Stronger shadow
+        shadowColor: Colors.grey,
+        // Grey shadow
+        titleTextStyle: const TextStyle(
+          color: Colors.white, // Title color
+          fontSize: 20, // Font size 20
+          fontWeight: FontWeight.bold, // Bold font
+        ),
       ),
       body: products.isEmpty
           ? const Center(
-        child: Text(
-          "No products added yet.\nTap + to add product",
-          textAlign: TextAlign.center,
-          style: TextStyle(color: Colors.grey),
-        ),
-      )
+              child: Text(
+                "No products added yet.\nTap + to add product",
+                textAlign: TextAlign.center,
+                style: TextStyle(color: Colors.grey),
+              ),
+            )
           : ListView.builder(
-        padding: const EdgeInsets.fromLTRB(12, 12, 12, 90),
-        itemCount: products.length,
-        itemBuilder: (context, index) {
-          final p = products[index];
-          final String name = p["name"] ?? "";
-          final String initial = name.isNotEmpty ? name[0].toUpperCase() : "?";
+              padding: const EdgeInsets.fromLTRB(12, 12, 12, 90),
+              itemCount: products.length,
+              itemBuilder: (context, index) {
+                final p = products[index];
+                final String name = p["name"] ?? "";
+                final String initial = name.isNotEmpty
+                    ? name[0].toUpperCase()
+                    : "?";
 
-          return Card(
-            margin: const EdgeInsets.only(bottom: 10),
-            child: ListTile(
-              leading: CircleAvatar(
-                backgroundColor: Colors.blueAccent.withOpacity(0.2),
-                child: Text(
-                  initial,
-                  style: const TextStyle(
-                    color: Colors.blue,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 20,
+                return Card(
+                  margin: const EdgeInsets.only(bottom: 10),
+                  child: ListTile(
+                    leading: CircleAvatar(
+                      backgroundColor: Colors.blueAccent.withOpacity(0.2),
+                      child: Text(
+                        initial,
+                        style: const TextStyle(
+                          color: Colors.blue,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 20,
+                        ),
+                      ),
+                    ),
+                    title: Text(name),
+                    subtitle: Text(
+                      p["detail"] ?? "",
+                      style: const TextStyle(color: Colors.grey),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    trailing: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        IconButton(
+                          icon: const Icon(Icons.edit, color: Colors.blue),
+                          onPressed: () => openProductForm(index: index),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.delete, color: Colors.red),
+                          onPressed: () => deleteProduct(index),
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-              ),
-              title: Text(name),
-              subtitle: Text(
-                p["detail"] ?? "",
-                style: const TextStyle(color: Colors.grey),
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-              ),
-              trailing: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  IconButton(
-                    icon: const Icon(Icons.edit, color: Colors.blue),
-                    onPressed: () => openProductForm(index: index),
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.delete, color: Colors.red),
-                    onPressed: () => deleteProduct(index),
-                  ),
-                ],
-              ),
+                );
+              },
             ),
-          );
-        },
-      ),
       floatingActionButton: FloatingActionButton(
         backgroundColor: Colors.blue,
         onPressed: () {
