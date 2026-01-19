@@ -23,6 +23,8 @@ class _AdminUsersPageState extends State<AdminUsersPage> {
   List<Map<String, dynamic>> roles = [];
   List<Map<String, dynamic>> branches = [];
 
+  int? editingIndex;
+
   @override
   void initState() {
     super.initState();
@@ -31,12 +33,27 @@ class _AdminUsersPageState extends State<AdminUsersPage> {
     _fetchUsers();
   }
 
+  void clearForm() {
+    nameController.clear();
+    emailController.clear();
+    passwordController.clear();
+    editingIndex = null;
+  }
+
   // ================= FETCH USERS =================
   Future<void> _fetchUsers() async {
     setState(() => _isFetching = true);
     try {
-      final data = await ApiService.get("users");
-      if (data is List) users = List<Map<String, dynamic>>.from(data);
+      final response = await ApiService.get("users");
+      List data = [];
+      if (response is Map && response.containsKey("data")) {
+        data = response["data"];
+      } else if (response is List) {
+        data = response;
+      }
+      setState(() {
+        users = List<Map<String, dynamic>>.from(data);
+      });
     } catch (e) {
       _showSnackBar("Failed to fetch users: $e");
     } finally {
@@ -47,14 +64,17 @@ class _AdminUsersPageState extends State<AdminUsersPage> {
   // ================= FETCH ROLES =================
   Future<void> _fetchRoles() async {
     try {
-      final data = await ApiService.get("roles");
-      if (data is List) {
-        setState(() {
-          roles = List<Map<String, dynamic>>.from(data);
-          if (roles.isNotEmpty)
-            selectedRoleId = int.parse(roles.first["id"].toString());
-        });
+      final response = await ApiService.get("roles");
+      List data = [];
+      if (response is Map && response.containsKey("data")) {
+        data = response["data"];
+      } else if (response is List) {
+        data = response;
       }
+      setState(() {
+        roles = List<Map<String, dynamic>>.from(data);
+        if (roles.isNotEmpty) selectedRoleId = int.parse(roles.first["id"].toString());
+      });
     } catch (e) {
       _showSnackBar("Failed to fetch roles: $e");
     }
@@ -63,99 +83,98 @@ class _AdminUsersPageState extends State<AdminUsersPage> {
   // ================= FETCH BRANCHES =================
   Future<void> _fetchBranches() async {
     try {
-      final data = await ApiService.get("branches");
-      if (data is List) {
-        setState(() {
-          branches = List<Map<String, dynamic>>.from(data);
-          if (branches.isNotEmpty)
-            selectedBranchId = int.parse(branches.first["id"].toString());
-        });
+      final response = await ApiService.get("branches");
+      List data = [];
+      if (response is Map && response.containsKey("data")) {
+        data = response["data"];
+      } else if (response is List) {
+        data = response;
       }
+      setState(() {
+        branches = List<Map<String, dynamic>>.from(data);
+        if (branches.isNotEmpty) selectedBranchId = int.parse(branches.first["id"].toString());
+      });
     } catch (e) {
       _showSnackBar("Failed to fetch branches: $e");
     }
   }
 
-  // ================= CREATE USER =================
-  Future<void> _createUser() async {
+  // ================= SAVE / UPDATE USER =================
+  Future<void> _saveUser() async {
     final name = nameController.text.trim();
     final email = emailController.text.trim();
     final password = passwordController.text.trim();
-    if (name.isEmpty ||
-        email.isEmpty ||
-        password.isEmpty ||
-        selectedRoleId == null ||
-        selectedBranchId == null) {
-      _showSnackBar("All fields are required");
+
+    if (name.isEmpty || email.isEmpty || selectedRoleId == null || selectedBranchId == null || (editingIndex == null && password.isEmpty)) {
+      _showSnackBar("All required fields must be filled");
       return;
     }
+
     setState(() => _isLoading = true);
+
+    final body = {
+      "name": name,
+      "email": email,
+      "role_id": selectedRoleId,
+      "branch_id": selectedBranchId,
+      if (editingIndex == null) "password": password,
+    };
+
     try {
-      await ApiService.post("new_user", {
-        "name": name,
-        "email": email,
-        "password": password,
-        "role_id": selectedRoleId,
-        "branch_id": selectedBranchId,
-      });
-      Navigator.pop(context);
-      nameController.clear();
-      emailController.clear();
-      passwordController.clear();
-      await _fetchUsers();
-      _showSnackBar("User created successfully", isError: false);
+      Map<String, dynamic> response;
+      if (editingIndex == null) {
+        // CREATE NEW USER
+        response = await ApiService.post("new_user", body);
+        setState(() {
+          users.add(Map<String, dynamic>.from(response["data"]));
+        });
+        Navigator.pop(context);
+        clearForm();
+        _showSnackBar(response["message"] ?? "User created successfully", isError: false);
+      } else {
+        // UPDATE EXISTING USER
+        final id = users[editingIndex!]["id"];
+        response = await ApiService.post("update_user/$id", body);
+        setState(() {
+          users[editingIndex!] = Map<String, dynamic>.from(response["data"]);
+        });
+        Navigator.pop(context);
+        clearForm();
+        _showSnackBar(response["message"] ?? "User updated successfully", isError: false);
+      }
     } catch (e) {
-      _showSnackBar("Failed to create user: $e");
+      _showSnackBar("Failed to save user: $e");
     } finally {
       setState(() => _isLoading = false);
     }
   }
 
-  // ================= UPDATE USER =================
-  Future<void> _updateUser(int userId) async {
-    final name = nameController.text.trim();
-    final email = emailController.text.trim();
-    if (name.isEmpty || email.isEmpty) {
-      _showSnackBar("Name & Email required");
-      return;
-    }
-    setState(() => _isLoading = true);
+  // ================= DELETE USER =================
+  Future<void> _softDeleteUser(int index) async {
+    final id = users[index]["id"];
+
     try {
-      await ApiService.post("users/$userId", {
-        "name": name,
-        "email": email,
-        "role_id": selectedRoleId,
-        "branch_id": selectedBranchId,
+      // Call your delete API endpoint
+      await ApiService.delete("delete_user/$id");
+
+      setState(() {
+        users.removeAt(index);
       });
-      Navigator.pop(context);
-      await _fetchUsers();
-      _showSnackBar("User updated successfully", isError: false);
+
+      _showSnackBar("User removed successfully", isError: false);
     } catch (e) {
-      _showSnackBar("Update failed: $e");
-    } finally {
-      setState(() => _isLoading = false);
+      _showSnackBar("Failed to remove user: $e");
     }
   }
 
-  // ================= SOFT DELETE USER =================
-  void _softDeleteUser(int userId) {
-    setState(() {
-      users.removeWhere((u) => u["id"] == userId);
-    });
-    _showSnackBar(
-      "User removed from app (not deleted from database)",
-      isError: false,
-    );
-  }
-
-  // ================= DELETE CONFIRMATION =================
-  void _confirmDeleteUser(int userId) {
+// ================= DELETE CONFIRMATION =================
+  void _confirmDeleteUser(int index) {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text("Remove User"),
         content: const Text(
-          "This will remove the user from the app, but keep them in the database. Proceed?",
+          "Are you sure you want to remove this user?",
         ),
         actions: [
           TextButton(
@@ -166,67 +185,54 @@ class _AdminUsersPageState extends State<AdminUsersPage> {
             style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
             onPressed: () {
               Navigator.pop(ctx);
-              _softDeleteUser(userId);
+              _softDeleteUser(index); // Calls API now
             },
             child: const Text(
               "Remove",
               style: TextStyle(color: Colors.white),
-            ), // white text
+            ),
           ),
         ],
       ),
     );
   }
 
-  // ================= CREATE USER MODAL =================
-  void _openCreateUserModal() {
-    nameController.clear();
-    emailController.clear();
-    passwordController.clear();
-    if (roles.isNotEmpty)
-      selectedRoleId = int.parse(roles.first["id"].toString());
-    if (branches.isNotEmpty)
-      selectedBranchId = int.parse(branches.first["id"].toString());
+
+  // ================= OPEN MODAL =================
+  void _openUserModal({int? index}) {
+    if (index != null) {
+      editingIndex = index;
+      final u = users[index];
+      nameController.text = u["name"] ?? "";
+      emailController.text = u["email"] ?? "";
+      passwordController.clear();
+      selectedRoleId = int.parse(u["role_id"].toString());
+      selectedBranchId = int.parse(u["branch_id"].toString());
+    } else {
+      clearForm();
+      if (roles.isNotEmpty) selectedRoleId = int.parse(roles.first["id"].toString());
+      if (branches.isNotEmpty) selectedBranchId = int.parse(branches.first["id"].toString());
+    }
 
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-      ),
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
       builder: (_) => Padding(
-        padding: EdgeInsets.only(
-          bottom: MediaQuery.of(context).viewInsets.bottom + 20,
-          left: 20,
-          right: 20,
-          top: 20,
-        ),
+        padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom + 20, left: 20, right: 20, top: 20),
         child: SingleChildScrollView(
           child: Column(
             children: [
-              const Text(
-                "Create User",
-                style: TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.blue,
-                ),
-              ),
+              Text(editingIndex == null ? "Create User" : "Edit User",
+                  style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.blue)),
               const SizedBox(height: 20),
               _inputField(nameController, "Name"),
               _inputField(emailController, "Email"),
-              _inputField(passwordController, "Password", obscure: true),
+              if (editingIndex == null) _inputField(passwordController, "Password", obscure: true),
               const SizedBox(height: 16),
               DropdownButtonFormField<int>(
                 value: selectedRoleId,
-                items: roles
-                    .map(
-                      (r) => DropdownMenuItem(
-                        value: int.parse(r["id"].toString()),
-                        child: Text(r["title"].toString()),
-                      ),
-                    )
-                    .toList(),
+                items: roles.map((r) => DropdownMenuItem(value: int.parse(r["id"].toString()), child: Text(r["title"].toString()))).toList(),
                 onChanged: (v) => setState(() => selectedRoleId = v),
                 decoration: _inputDecoration("Role"),
               ),
@@ -234,103 +240,7 @@ class _AdminUsersPageState extends State<AdminUsersPage> {
               DropdownButtonFormField<int>(
                 value: selectedBranchId,
                 items: branches
-                    .map(
-                      (b) => DropdownMenuItem(
-                        value: int.parse(b["id"].toString()),
-                        child: Text(b["branch_name"].toString()),
-                      ),
-                    )
-                    .toList(),
-                onChanged: (v) => setState(() => selectedBranchId = v),
-                decoration: _inputDecoration("Branch"),
-              ),
-              const SizedBox(height: 20),
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                child: SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.blue,
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                    onPressed: _isLoading ? null : _createUser,
-                    child: Text(
-                      _isLoading ? "Creating..." : "Create User",
-                      style: const TextStyle(fontSize: 16, color: Colors.white),
-                    ), // white text
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  // ================= EDIT USER MODAL =================
-  void _openEditUserModal(Map<String, dynamic> user) {
-    nameController.text = user["name"] ?? "";
-    emailController.text = user["email"] ?? "";
-    passwordController.clear();
-    selectedRoleId = int.parse(user["role_id"].toString());
-    selectedBranchId = int.parse(user["branch_id"].toString());
-
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-      ),
-      builder: (_) => Padding(
-        padding: EdgeInsets.only(
-          bottom: MediaQuery.of(context).viewInsets.bottom + 20,
-          left: 20,
-          right: 20,
-          top: 20,
-        ),
-        child: SingleChildScrollView(
-          child: Column(
-            children: [
-              const Text(
-                "Edit User",
-                style: TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.blue,
-                ),
-              ),
-              const SizedBox(height: 20),
-              _inputField(nameController, "Name"),
-              _inputField(emailController, "Email"),
-              const SizedBox(height: 16),
-              DropdownButtonFormField<int>(
-                value: selectedRoleId,
-                items: roles
-                    .map(
-                      (r) => DropdownMenuItem(
-                        value: int.parse(r["id"].toString()),
-                        child: Text(r["title"].toString()),
-                      ),
-                    )
-                    .toList(),
-                onChanged: (v) => setState(() => selectedRoleId = v),
-                decoration: _inputDecoration("Role"),
-              ),
-              const SizedBox(height: 16),
-              DropdownButtonFormField<int>(
-                value: selectedBranchId,
-                items: branches
-                    .map(
-                      (b) => DropdownMenuItem(
-                        value: int.parse(b["id"].toString()),
-                        child: Text(b["branch_name"].toString()),
-                      ),
-                    )
+                    .map((b) => DropdownMenuItem(value: int.parse(b["id"].toString()), child: Text(b["branch_name"].toString())))
                     .toList(),
                 onChanged: (v) => setState(() => selectedBranchId = v),
                 decoration: _inputDecoration("Branch"),
@@ -339,18 +249,10 @@ class _AdminUsersPageState extends State<AdminUsersPage> {
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.blue,
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                  onPressed: _isLoading ? null : () => _updateUser(user["id"]),
-                  child: Text(
-                    _isLoading ? "Updating..." : "Update User",
-                    style: const TextStyle(fontSize: 16, color: Colors.white),
-                  ), // white text
+                  style: ElevatedButton.styleFrom(backgroundColor: Colors.blue, padding: const EdgeInsets.symmetric(vertical: 14), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+                  onPressed: _isLoading ? null : _saveUser,
+                  child: Text(_isLoading ? (editingIndex == null ? "Creating..." : "Updating...") : (editingIndex == null ? "Create User" : "Update User"),
+                      style: const TextStyle(fontSize: 16, color: Colors.white)),
                 ),
               ),
             ],
@@ -368,110 +270,64 @@ class _AdminUsersPageState extends State<AdminUsersPage> {
         title: const Text("All Users"),
         centerTitle: true,
         backgroundColor: Colors.blue,
-        titleTextStyle: const TextStyle(
-          color: Colors.white,
-          fontSize: 20,
-          fontWeight: FontWeight.bold,
-        ),
+        titleTextStyle: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
         iconTheme: const IconThemeData(color: Colors.white),
-        // white back arrow
         elevation: 6,
-        // Adds visible shadow
-        shadowColor: Colors.grey, // Grey shadow below AppBar
+        shadowColor: Colors.grey,
       ),
-
       body: _isFetching
           ? const Center(child: CircularProgressIndicator())
           : users.isEmpty
           ? const Center(child: Text("No users found"))
           : ListView.builder(
-              padding: const EdgeInsets.all(12),
-              itemCount: users.length,
-              itemBuilder: (_, i) {
-                final u = users[i];
-                return Container(
-                  margin: const EdgeInsets.symmetric(vertical: 8),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(16),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.grey.withOpacity(0.3),
-                        spreadRadius: 2,
-                        blurRadius: 8,
-                        offset: const Offset(0, 3),
-                      ),
-                    ],
-                  ),
-                  child: ListTile(
-                    contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 20,
-                      vertical: 10,
-                    ),
-                    title: Text(
-                      u["name"] ?? "",
-                      style: const TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                    subtitle: Text(
-                      "${u["email"] ?? ""} | ${u["role"]?["title"] ?? ""} | ${u["branch"]?["branch_name"] ?? ""}",
-                    ),
-                    trailing: PopupMenuButton<String>(
-                      icon: const Icon(Icons.more_vert, color: Colors.blue),
-                      onSelected: (value) {
-                        if (value == "edit") _openEditUserModal(u);
-                        if (value == "delete")
-                          _confirmDeleteUser(u["id"]); // soft delete
-                      },
-                      itemBuilder: (_) => const [
-                        PopupMenuItem(value: "edit", child: Text("Edit")),
-                        PopupMenuItem(value: "delete", child: Text("Delete")),
-                      ],
-                    ),
-                  ),
-                );
-              },
+        padding: const EdgeInsets.all(12),
+        itemCount: users.length,
+        itemBuilder: (_, i) {
+          final u = users[i];
+          return Container(
+            margin: const EdgeInsets.symmetric(vertical: 8),
+            decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), boxShadow: [BoxShadow(color: Colors.grey.withOpacity(0.3), spreadRadius: 2, blurRadius: 8, offset: const Offset(0, 3))]),
+            child: ListTile(
+              contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+              title: Text(u["name"] ?? "", style: const TextStyle(fontWeight: FontWeight.bold)),
+              subtitle: Text("${u["email"] ?? ""} | ${u["role"]?["title"] ?? ""} | ${u["branch"]?["branch_name"] ?? ""}"),
+              trailing: PopupMenuButton<String>(
+                icon: const Icon(Icons.more_vert, color: Colors.blue),
+                onSelected: (value) {
+                  if (value == "edit") _openUserModal(index: i);
+                  if (value == "delete") _confirmDeleteUser(i);
+                },
+                itemBuilder: (_) => const [
+                  PopupMenuItem(value: "edit", child: Text("Edit")),
+                  PopupMenuItem(value: "delete", child: Text("Delete")),
+                ],
+              ),
             ),
+          );
+        },
+      ),
       floatingActionButton: FloatingActionButton(
         backgroundColor: Colors.blue,
-        foregroundColor: Colors.white, // white icon
-        onPressed: _openCreateUserModal,
+        foregroundColor: Colors.white,
+        onPressed: () => _openUserModal(),
         child: const Icon(Icons.add),
       ),
     );
   }
 
-  Widget _inputField(
-    TextEditingController c,
-    String label, {
-    bool obscure = false,
-  }) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 16),
-      child: TextField(
-        controller: c,
-        obscureText: obscure,
-        decoration: _inputDecoration(label),
-      ),
-    );
+  Widget _inputField(TextEditingController c, String label, {bool obscure = false}) {
+    return Padding(padding: const EdgeInsets.only(bottom: 16), child: TextField(controller: c, obscureText: obscure, decoration: _inputDecoration(label)));
   }
 
   InputDecoration _inputDecoration(String label) {
     return InputDecoration(
       labelText: label,
       border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-      focusedBorder: OutlineInputBorder(
-        borderSide: const BorderSide(color: Colors.blue),
-        borderRadius: BorderRadius.circular(10),
-      ),
+      focusedBorder: OutlineInputBorder(borderSide: const BorderSide(color: Colors.blue), borderRadius: BorderRadius.circular(10)),
     );
   }
 
   void _showSnackBar(String msg, {bool isError = true}) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(msg),
-        backgroundColor: isError ? Colors.red : Colors.green,
-      ),
-    );
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg), backgroundColor: isError ? Colors.red : Colors.green));
   }
 }
