@@ -63,8 +63,16 @@ class _AdminUsersPageState extends State<AdminUsersPage> {
       if (response is Map && response.containsKey("data")) data = response["data"];
       else if (response is List) data = response;
 
+      users = List<Map<String, dynamic>>.from(data);
+
+      // Sort users alphabetically by name
+      users.sort((a, b) {
+        final nameA = (a["name"] ?? "").toString().toLowerCase();
+        final nameB = (b["name"] ?? "").toString().toLowerCase();
+        return nameA.compareTo(nameB);
+      });
+
       setState(() {
-        users = List<Map<String, dynamic>>.from(data);
         filteredUsers = List.from(users);
       });
     } catch (e) {
@@ -133,16 +141,19 @@ class _AdminUsersPageState extends State<AdminUsersPage> {
       Map<String, dynamic> response;
       if (editingIndex == null) {
         response = await ApiService.post("new_user", body);
-        setState(() {
-          users.add(Map<String, dynamic>.from(response["data"]));
-        });
+        users.add(Map<String, dynamic>.from(response["data"]));
       } else {
         final id = users[editingIndex!]["id"];
         response = await ApiService.post("update_user/$id", body);
-        setState(() {
-          users[editingIndex!] = Map<String, dynamic>.from(response["data"]);
-        });
+        users[editingIndex!] = Map<String, dynamic>.from(response["data"]);
       }
+
+      // Sort alphabetically A → Z
+      users.sort((a, b) {
+        final nameA = (a["name"] ?? "").toString().toLowerCase();
+        final nameB = (b["name"] ?? "").toString().toLowerCase();
+        return nameA.compareTo(nameB);
+      });
 
       _filterUsers(searchController.text); // Update filtered list
       Navigator.pop(context);
@@ -160,10 +171,16 @@ class _AdminUsersPageState extends State<AdminUsersPage> {
     final id = users[index]["id"];
     try {
       await ApiService.delete("delete_user/$id");
-      setState(() {
-        users.removeAt(index);
+      users.removeAt(index);
+
+      // Sort after deletion
+      users.sort((a, b) {
+        final nameA = (a["name"] ?? "").toString().toLowerCase();
+        final nameB = (b["name"] ?? "").toString().toLowerCase();
+        return nameA.compareTo(nameB);
       });
-      _filterUsers(searchController.text); // Update filtered list
+
+      _filterUsers(searchController.text);
       _showSnackBar("User removed successfully", isError: false);
     } catch (e) {
       _showSnackBar("Failed to remove user: $e");
@@ -253,6 +270,30 @@ class _AdminUsersPageState extends State<AdminUsersPage> {
     );
   }
 
+  // ================= INPUT HELPERS =================
+  Widget _inputField(TextEditingController c, String label, {bool obscure = false}) {
+    return Padding(padding: const EdgeInsets.only(bottom: 16), child: TextField(controller: c, obscureText: obscure, decoration: _inputDecoration(label)));
+  }
+
+  InputDecoration _inputDecoration(String label) {
+    return InputDecoration(
+      labelText: label,
+      border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+      focusedBorder: OutlineInputBorder(borderSide: const BorderSide(color: Colors.blue), borderRadius: BorderRadius.circular(10)),
+    );
+  }
+
+  void clearForm() {
+    nameController.clear();
+    emailController.clear();
+    passwordController.clear();
+    editingIndex = null;
+  }
+
+  void _showSnackBar(String msg, {bool isError = true}) {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg), backgroundColor: isError ? Colors.red : Colors.green));
+  }
+
   // ================= UI =================
   @override
   Widget build(BuildContext context) {
@@ -268,7 +309,6 @@ class _AdminUsersPageState extends State<AdminUsersPage> {
       ),
       body: Column(
         children: [
-          // ===== SEARCH BAR + FILTER ICON =====
           Padding(
             padding: const EdgeInsets.all(12.0),
             child: TextField(
@@ -288,8 +328,6 @@ class _AdminUsersPageState extends State<AdminUsersPage> {
               ),
             ),
           ),
-
-          // ===== USERS LIST =====
           Expanded(
             child: _isFetching
                 ? const Center(child: CircularProgressIndicator())
@@ -336,28 +374,5 @@ class _AdminUsersPageState extends State<AdminUsersPage> {
         child: const Icon(Icons.add),
       ),
     );
-  }
-
-  Widget _inputField(TextEditingController c, String label, {bool obscure = false}) {
-    return Padding(padding: const EdgeInsets.only(bottom: 16), child: TextField(controller: c, obscureText: obscure, decoration: _inputDecoration(label)));
-  }
-
-  InputDecoration _inputDecoration(String label) {
-    return InputDecoration(
-      labelText: label,
-      border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-      focusedBorder: OutlineInputBorder(borderSide: const BorderSide(color: Colors.blue), borderRadius: BorderRadius.circular(10)),
-    );
-  }
-
-  void clearForm() {
-    nameController.clear();
-    emailController.clear();
-    passwordController.clear();
-    editingIndex = null;
-  }
-
-  void _showSnackBar(String msg, {bool isError = true}) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg), backgroundColor: isError ? Colors.red : Colors.green));
   }
 }

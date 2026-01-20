@@ -12,8 +12,10 @@ class _AdminAddProductPageState extends State<AdminAddProductPage> {
   final _formKey = GlobalKey<FormState>();
   final TextEditingController nameController = TextEditingController();
   final TextEditingController detailController = TextEditingController();
+  final TextEditingController searchController = TextEditingController();
 
   List<Map<String, dynamic>> products = [];
+  List<Map<String, dynamic>> filteredProducts = [];
   int? editingIndex;
 
   @override
@@ -32,12 +34,38 @@ class _AdminAddProductPageState extends State<AdminAddProductPage> {
   Future<void> fetchProducts() async {
     try {
       final data = await ApiService.get("products");
+      products = List<Map<String, dynamic>>.from(data);
+
+      // Sort alphabetically A → Z
+      products.sort((a, b) {
+        final nameA = (a["name"] ?? "").toString().toLowerCase();
+        final nameB = (b["name"] ?? "").toString().toLowerCase();
+        return nameA.compareTo(nameB);
+      });
+
       setState(() {
-        products = List<Map<String, dynamic>>.from(data);
+        filteredProducts = List.from(products);
       });
     } catch (e) {
       _showMessage("Failed to fetch products: $e", isError: true);
     }
+  }
+
+  // ================= SEARCH FILTER =================
+  void _filterProducts(String query) {
+    if (query.isEmpty) {
+      setState(() => filteredProducts = List.from(products));
+      return;
+    }
+
+    final q = query.toLowerCase();
+    setState(() {
+      filteredProducts = products.where((p) {
+        final name = (p["name"] ?? "").toString().toLowerCase();
+        final detail = (p["detail"] ?? "").toString().toLowerCase();
+        return name.contains(q) || detail.contains(q);
+      }).toList();
+    });
   }
 
   // ================= SAVE / UPDATE PRODUCT =================
@@ -46,7 +74,7 @@ class _AdminAddProductPageState extends State<AdminAddProductPage> {
 
     final body = {
       "name": nameController.text,
-      "detail": detailController.text
+      "detail": detailController.text,
     };
 
     try {
@@ -54,20 +82,23 @@ class _AdminAddProductPageState extends State<AdminAddProductPage> {
 
       if (editingIndex == null) {
         response = await ApiService.post("new_product", body);
-        setState(() {
-          products.add(Map<String, dynamic>.from(response['data']));
-        });
+        products.add(Map<String, dynamic>.from(response['data']));
       } else {
         final id = products[editingIndex!]["id"];
         response = await ApiService.post("update_product/$id", body);
-        setState(() {
-          products[editingIndex!] =
-          Map<String, dynamic>.from(response['data']);
-        });
+        products[editingIndex!] = Map<String, dynamic>.from(response['data']);
       }
+
+      // Sort after add/update
+      products.sort((a, b) {
+        final nameA = (a["name"] ?? "").toString().toLowerCase();
+        final nameB = (b["name"] ?? "").toString().toLowerCase();
+        return nameA.compareTo(nameB);
+      });
 
       Navigator.pop(context);
       clearForm();
+      _filterProducts(searchController.text); // Update filtered list
       _showMessage(response['message'] ?? "Success");
     } catch (e) {
       _showMessage("Failed to save product: $e", isError: true);
@@ -86,9 +117,16 @@ class _AdminAddProductPageState extends State<AdminAddProductPage> {
     try {
       final id = products[index]["id"];
       await ApiService.delete("delete_product/$id");
-      setState(() {
-        products.removeAt(index);
+      products.removeAt(index);
+
+      // Sort after deletion
+      products.sort((a, b) {
+        final nameA = (a["name"] ?? "").toString().toLowerCase();
+        final nameB = (b["name"] ?? "").toString().toLowerCase();
+        return nameA.compareTo(nameB);
       });
+
+      _filterProducts(searchController.text);
       _showMessage("Product deleted successfully");
     } catch (e) {
       _showMessage("Failed to delete product: $e", isError: true);
@@ -224,56 +262,88 @@ class _AdminAddProductPageState extends State<AdminAddProductPage> {
         backgroundColor: Colors.blue,
         foregroundColor: Colors.white,
         centerTitle: true,
-        elevation: 6,                 // Shadow strength
-        shadowColor: Colors.grey,     // Grey shadow
+        elevation: 6,
+        shadowColor: Colors.grey,
       ),
-
-      body: ListView.builder(
-        padding: const EdgeInsets.fromLTRB(12, 12, 12, 90),
-        itemCount: products.length,
-        itemBuilder: (context, index) {
-          final p = products[index];
-          final name = p["name"] ?? "";
-          final initial = name.isNotEmpty ? name[0].toUpperCase() : "?";
-
-          return Card(
-            margin: const EdgeInsets.only(bottom: 10),
-            child: ListTile(
-              contentPadding: const EdgeInsets.symmetric(horizontal: 12),
-              leading: CircleAvatar(
-                backgroundColor: Colors.blueAccent.withOpacity(0.2),
-                child: Text(
-                  initial,
-                  style: const TextStyle(
-                    color: Colors.blue,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 20,
-                  ),
+      body: Column(
+        children: [
+          // ===== SEARCH BAR + FILTER ICON =====
+          Padding(
+            padding: const EdgeInsets.all(12.0),
+            child: TextField(
+              controller: searchController,
+              onChanged: _filterProducts,
+              decoration: InputDecoration(
+                hintText: "Search products...",
+                prefixIcon: const Icon(Icons.search),
+                suffixIcon: IconButton(
+                  icon: const Icon(Icons.filter_list),
+                  onPressed: () {
+                    // TODO: implement filter modal if needed
+                  },
+                ),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                focusedBorder: OutlineInputBorder(
+                  borderSide: const BorderSide(color: Colors.blue),
+                  borderRadius: BorderRadius.circular(12),
                 ),
               ),
-              title: Text(name),
-              subtitle: Text(
-                p["detail"] ?? "",
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(color: Colors.grey),
-              ),
-              trailing: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  IconButton(
-                    icon: const Icon(Icons.edit, color: Colors.blue),
-                    onPressed: () => openProductForm(index: index),
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.delete, color: Colors.red),
-                    onPressed: () => deleteProduct(index),
-                  ),
-                ],
-              ),
             ),
-          );
-        },
+          ),
+
+          // ===== PRODUCTS LIST =====
+          Expanded(
+            child: filteredProducts.isEmpty
+                ? const Center(child: Text("No products found"))
+                : ListView.builder(
+              padding: const EdgeInsets.fromLTRB(12, 12, 12, 90),
+              itemCount: filteredProducts.length,
+              itemBuilder: (context, index) {
+                final p = filteredProducts[index];
+                final name = p["name"] ?? "";
+                final initial = name.isNotEmpty ? name[0].toUpperCase() : "?";
+
+                return Card(
+                  margin: const EdgeInsets.only(bottom: 10),
+                  child: ListTile(
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 12),
+                    leading: CircleAvatar(
+                      backgroundColor: Colors.blueAccent.withOpacity(0.2),
+                      child: Text(
+                        initial,
+                        style: const TextStyle(
+                          color: Colors.blue,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 20,
+                        ),
+                      ),
+                    ),
+                    title: Text(name),
+                    subtitle: Text(
+                      p["detail"] ?? "",
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(color: Colors.grey),
+                    ),
+                    trailing: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        IconButton(
+                          icon: const Icon(Icons.edit, color: Colors.blue),
+                          onPressed: () => openProductForm(index: products.indexOf(p)),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.delete, color: Colors.red),
+                          onPressed: () => deleteProduct(products.indexOf(p)),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+        ],
       ),
       floatingActionButton: FloatingActionButton(
         backgroundColor: Colors.blue,
