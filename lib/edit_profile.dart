@@ -20,7 +20,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   final TextEditingController _oldPasswordController = TextEditingController();
   final TextEditingController _newPasswordController = TextEditingController();
 
-  File? _imageFile; // Selected profile image
+  File? _imageFile;
   late Future<Map<String, dynamic>> _profileFuture;
   bool _isUpdating = false;
 
@@ -30,16 +30,13 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     _profileFuture = fetchProfile();
   }
 
-  // Fetch profile data
   Future<Map<String, dynamic>> fetchProfile() async {
     final data = await ApiService.get("profile");
 
-    // Auto-fill text controllers
     final nameParts = (data['name'] as String).split(" ");
     _firstNameController.text = nameParts.first;
-    _lastNameController.text = nameParts.length > 1
-        ? nameParts.sublist(1).join(" ")
-        : "";
+    _lastNameController.text =
+    nameParts.length > 1 ? nameParts.sublist(1).join(" ") : "";
     _emailController.text = data['email'];
 
     return data;
@@ -67,7 +64,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         "email": _emailController.text.trim(),
       };
 
-      // Add password fields if filled
       if (_oldPasswordController.text.isNotEmpty &&
           _newPasswordController.text.isNotEmpty) {
         fields["old_password"] = _oldPasswordController.text.trim();
@@ -79,17 +75,20 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(response['message'] ?? "Profile updated successfully"),
+          backgroundColor: Colors.blueAccent,
         ),
       );
 
-      // Refresh profile after update
       setState(() {
         _profileFuture = fetchProfile();
       });
     } catch (e) {
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text("Update failed: $e")));
+      ).showSnackBar(SnackBar(
+        content: Text("Update failed: $e"),
+        backgroundColor: Colors.redAccent,
+      ));
     } finally {
       setState(() {
         _isUpdating = false;
@@ -107,17 +106,27 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     super.dispose();
   }
 
+  InputDecoration _inputDecoration(String label, IconData icon) {
+    return InputDecoration(
+      prefixIcon: Icon(icon, color: Colors.blueAccent),
+      labelText: label,
+      filled: true,
+      fillColor: Colors.white,
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(30),
+        borderSide: BorderSide(color: Colors.blueAccent.withOpacity(0.3)),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(30),
+        borderSide: const BorderSide(color: Colors.blueAccent, width: 2),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
-      appBar: AppBar(
-        title: const Text("Edit Profile"),
-        centerTitle: true,
-        backgroundColor: Colors.white,
-        foregroundColor: Colors.black,
-        elevation: 0,
-      ),
+      backgroundColor: Colors.blue[50],
       body: FutureBuilder<Map<String, dynamic>>(
         future: _profileFuture,
         builder: (context, snapshot) {
@@ -138,135 +147,125 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           final String? profileImageUrl = data['profile_photo_url'];
 
           return SingleChildScrollView(
-            padding: const EdgeInsets.all(16),
             child: Column(
               children: [
-                const SizedBox(height: 16),
-                Stack(
-                  alignment: Alignment.bottomRight,
-                  children: [
-                    CircleAvatar(
-                      radius: 55,
-                      backgroundColor: Colors.grey[300],
-                      backgroundImage: _imageFile != null
-                          ? FileImage(_imageFile!) as ImageProvider
-                          : (profileImageUrl != null
-                                ? NetworkImage(profileImageUrl)
-                                : null),
-                      child: (_imageFile == null && profileImageUrl == null)
-                          ? const Icon(Icons.person, size: 55)
-                          : null,
+                Container(
+                  height: 180,
+                  decoration: const BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [Colors.blueAccent, Colors.lightBlueAccent],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
                     ),
-                    InkWell(
-                      onTap: _pickImage,
-                      child: const CircleAvatar(
-                        radius: 16,
-                        backgroundColor: Colors.blueAccent,
-                        child: Icon(
-                          Icons.camera_alt,
-                          size: 18,
-                          color: Colors.white,
+                    borderRadius: BorderRadius.only(
+                      bottomLeft: Radius.circular(40),
+                      bottomRight: Radius.circular(40),
+                    ),
+                  ),
+                  child: Center(
+                    child: Stack(
+                      alignment: Alignment.bottomRight,
+                      children: [
+                        CircleAvatar(
+                          radius: 55,
+                          backgroundColor: Colors.white,
+                          backgroundImage: _imageFile != null
+                              ? FileImage(_imageFile!) as ImageProvider
+                              : (profileImageUrl != null
+                              ? NetworkImage(profileImageUrl)
+                              : null),
+                          child: (_imageFile == null && profileImageUrl == null)
+                              ? const Icon(Icons.person,
+                              size: 55, color: Colors.blueAccent)
+                              : null,
+                        ),
+                        InkWell(
+                          onTap: _pickImage,
+                          child: const CircleAvatar(
+                            radius: 16,
+                            backgroundColor: Colors.white,
+                            child: Icon(
+                              Icons.camera_alt,
+                              size: 18,
+                              color: Colors.blueAccent,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 24),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: Column(
+                    children: [
+                      TextFormField(
+                        controller: _firstNameController,
+                        decoration: _inputDecoration("First Name", Icons.person),
+                      ),
+                      const SizedBox(height: 12),
+                      TextFormField(
+                        controller: _lastNameController,
+                        decoration: _inputDecoration("Last Name", Icons.person),
+                      ),
+                      const SizedBox(height: 12),
+                      TextFormField(
+                        controller: _emailController,
+                        keyboardType: TextInputType.emailAddress,
+                        decoration: _inputDecoration("Email", Icons.email),
+                      ),
+                      const SizedBox(height: 12),
+                      TextFormField(
+                        controller: _oldPasswordController,
+                        obscureText: !_showOldPassword,
+                        decoration: _inputDecoration("Old Password", Icons.lock)
+                            .copyWith(
+                          suffixIcon: IconButton(
+                            icon: Icon(_showOldPassword
+                                ? Icons.visibility
+                                : Icons.visibility_off),
+                            onPressed: () => setState(
+                                    () => _showOldPassword = !_showOldPassword),
+                          ),
                         ),
                       ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 24),
-                TextFormField(
-                  controller: _firstNameController,
-                  decoration: InputDecoration(
-                    prefixIcon: const Icon(Icons.person),
-                    labelText: "First Name",
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(50),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                TextFormField(
-                  controller: _lastNameController,
-                  decoration: InputDecoration(
-                    prefixIcon: const Icon(Icons.person),
-                    labelText: "Last Name",
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(50),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                TextFormField(
-                  controller: _emailController,
-                  keyboardType: TextInputType.emailAddress,
-                  decoration: InputDecoration(
-                    prefixIcon: const Icon(Icons.email),
-                    labelText: "Email",
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(50),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                TextFormField(
-                  controller: _oldPasswordController,
-                  obscureText: !_showOldPassword,
-                  decoration: InputDecoration(
-                    prefixIcon: const Icon(Icons.lock),
-                    labelText: "Old Password",
-                    suffixIcon: IconButton(
-                      icon: Icon(
-                        _showOldPassword
-                            ? Icons.visibility
-                            : Icons.visibility_off,
+                      const SizedBox(height: 12),
+                      TextFormField(
+                        controller: _newPasswordController,
+                        obscureText: !_showNewPassword,
+                        decoration: _inputDecoration("New Password", Icons.lock)
+                            .copyWith(
+                          suffixIcon: IconButton(
+                            icon: Icon(_showNewPassword
+                                ? Icons.visibility
+                                : Icons.visibility_off),
+                            onPressed: () => setState(
+                                    () => _showNewPassword = !_showNewPassword),
+                          ),
+                        ),
                       ),
-                      onPressed: () =>
-                          setState(() => _showOldPassword = !_showOldPassword),
-                    ),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(50),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                TextFormField(
-                  controller: _newPasswordController,
-                  obscureText: !_showNewPassword,
-                  decoration: InputDecoration(
-                    prefixIcon: const Icon(Icons.lock),
-                    labelText: "New Password",
-                    suffixIcon: IconButton(
-                      icon: Icon(
-                        _showNewPassword
-                            ? Icons.visibility
-                            : Icons.visibility_off,
+                      const SizedBox(height: 24),
+                      ElevatedButton(
+                        onPressed: _isUpdating ? null : _updateProfile,
+                        style: ElevatedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(30)),
+                          backgroundColor: Colors.blueAccent,
+                          foregroundColor: Colors.white,
+                          minimumSize: const Size(double.infinity, 50),
+                        ),
+                        child: Text(
+                          _isUpdating ? "Updating..." : "Update Profile",
+                          style: const TextStyle(
+                              fontSize: 18, fontWeight: FontWeight.bold),
+                        ),
                       ),
-                      onPressed: () =>
-                          setState(() => _showNewPassword = !_showNewPassword),
-                    ),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(50),
-                    ),
+                      const SizedBox(height: 24),
+                    ],
                   ),
                 ),
-                const SizedBox(height: 24),
-                ElevatedButton(
-                  onPressed: _isUpdating ? null : _updateProfile,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.blueAccent,
-                    foregroundColor: Colors.white,
-                    minimumSize: const Size(double.infinity, 48),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                  child: Text(
-                    _isUpdating ? "Updating..." : "Update Profile",
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                )
-
               ],
             ),
           );
