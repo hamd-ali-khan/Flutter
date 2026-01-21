@@ -37,7 +37,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     // Auto-fill text controllers
     final nameParts = (data['name'] as String).split(" ");
     _firstNameController.text = nameParts.first;
-    _lastNameController.text = nameParts.length > 1 ? nameParts.sublist(1).join(" ") : "";
+    _lastNameController.text = nameParts.length > 1
+        ? nameParts.sublist(1).join(" ")
+        : "";
     _emailController.text = data['email'];
 
     return data;
@@ -66,7 +68,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       };
 
       // Add password fields if filled
-      if (_oldPasswordController.text.isNotEmpty && _newPasswordController.text.isNotEmpty) {
+      if (_oldPasswordController.text.isNotEmpty &&
+          _newPasswordController.text.isNotEmpty) {
         fields["old_password"] = _oldPasswordController.text.trim();
         fields["new_password"] = _newPasswordController.text.trim();
       }
@@ -74,7 +77,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       final response = await ApiService.uploadProfile(fields, _imageFile);
 
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(response['message'] ?? "Profile updated successfully")),
+        SnackBar(
+          content: Text(response['message'] ?? "Profile updated successfully"),
+        ),
       );
 
       // Refresh profile after update
@@ -82,9 +87,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         _profileFuture = fetchProfile();
       });
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Update failed: $e")),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text("Update failed: $e")));
     } finally {
       setState(() {
         _isUpdating = false;
@@ -122,7 +127,10 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
           if (snapshot.hasError) {
             return Center(
-              child: Text(snapshot.error.toString(), style: const TextStyle(color: Colors.red)),
+              child: Text(
+                snapshot.error.toString(),
+                style: const TextStyle(color: Colors.red),
+              ),
             );
           }
 
@@ -142,7 +150,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                       backgroundColor: Colors.grey[300],
                       backgroundImage: _imageFile != null
                           ? FileImage(_imageFile!) as ImageProvider
-                          : (profileImageUrl != null ? NetworkImage(profileImageUrl) : null),
+                          : (profileImageUrl != null
+                                ? NetworkImage(profileImageUrl)
+                                : null),
                       child: (_imageFile == null && profileImageUrl == null)
                           ? const Icon(Icons.person, size: 55)
                           : null,
@@ -152,7 +162,11 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                       child: const CircleAvatar(
                         radius: 16,
                         backgroundColor: Colors.blueAccent,
-                        child: Icon(Icons.camera_alt, size: 18, color: Colors.white),
+                        child: Icon(
+                          Icons.camera_alt,
+                          size: 18,
+                          color: Colors.white,
+                        ),
                       ),
                     ),
                   ],
@@ -163,7 +177,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                   decoration: InputDecoration(
                     prefixIcon: const Icon(Icons.person),
                     labelText: "First Name",
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(50)),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(50),
+                    ),
                   ),
                 ),
                 const SizedBox(height: 12),
@@ -172,7 +188,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                   decoration: InputDecoration(
                     prefixIcon: const Icon(Icons.person),
                     labelText: "Last Name",
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(50)),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(50),
+                    ),
                   ),
                 ),
                 const SizedBox(height: 12),
@@ -182,7 +200,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                   decoration: InputDecoration(
                     prefixIcon: const Icon(Icons.email),
                     labelText: "Email",
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(50)),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(50),
+                    ),
                   ),
                 ),
                 const SizedBox(height: 12),
@@ -193,10 +213,17 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                     prefixIcon: const Icon(Icons.lock),
                     labelText: "Old Password",
                     suffixIcon: IconButton(
-                      icon: Icon(_showOldPassword ? Icons.visibility : Icons.visibility_off),
-                      onPressed: () => setState(() => _showOldPassword = !_showOldPassword),
+                      icon: Icon(
+                        _showOldPassword
+                            ? Icons.visibility
+                            : Icons.visibility_off,
+                      ),
+                      onPressed: () =>
+                          setState(() => _showOldPassword = !_showOldPassword),
                     ),
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(50)),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(50),
+                    ),
                   ),
                 ),
                 const SizedBox(height: 12),
@@ -207,10 +234,17 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                     prefixIcon: const Icon(Icons.lock),
                     labelText: "New Password",
                     suffixIcon: IconButton(
-                      icon: Icon(_showNewPassword ? Icons.visibility : Icons.visibility_off),
-                      onPressed: () => setState(() => _showNewPassword = !_showNewPassword),
+                      icon: Icon(
+                        _showNewPassword
+                            ? Icons.visibility
+                            : Icons.visibility_off,
+                      ),
+                      onPressed: () =>
+                          setState(() => _showNewPassword = !_showNewPassword),
                     ),
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(50)),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(50),
+                    ),
                   ),
                 ),
                 const SizedBox(height: 24),
@@ -220,7 +254,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                     backgroundColor: Colors.blueAccent,
                     foregroundColor: Colors.white,
                     minimumSize: const Size(double.infinity, 48),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                   ),
                   child: Text(
                     _isUpdating ? "Updating..." : "Update Profile",
