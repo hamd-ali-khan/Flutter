@@ -83,7 +83,7 @@ class _AdminUsersPageState extends State<AdminUsersPage> {
   Future<void> _fetchUsers() async {
     setState(() => _isFetching = true);
     try {
-      await Future.delayed(const Duration(milliseconds: 500));
+      await Future.delayed(const Duration(milliseconds: 200));
       final response = await ApiService.get("users");
       List data = [];
       if (response is Map && response.containsKey("data")) data = response["data"];
@@ -163,7 +163,7 @@ class _AdminUsersPageState extends State<AdminUsersPage> {
 
     try {
       Map<String, dynamic> response;
-      await Future.delayed(const Duration(milliseconds: 500));
+      await Future.delayed(const Duration(milliseconds: 300));
 
       if (editingIndex == null) {
         response = await ApiService.post("new_user", body);
@@ -197,7 +197,7 @@ class _AdminUsersPageState extends State<AdminUsersPage> {
     final id = users[index]["id"];
     setState(() => _isDeleting = true);
     try {
-      await Future.delayed(const Duration(milliseconds: 500));
+      await Future.delayed(const Duration(milliseconds: 300));
       await ApiService.delete("delete_user/$id");
       users.removeAt(index);
       _filterUsers(searchController.text);
