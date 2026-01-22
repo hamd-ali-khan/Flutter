@@ -27,13 +27,11 @@ void main() async {
 
 class MyApp extends StatelessWidget {
   final Widget initialScreen;
+
   const MyApp({required this.initialScreen, super.key});
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      home: initialScreen,
-    );
+    return MaterialApp(debugShowCheckedModeBanner: false, home: initialScreen);
   }
 }

@@ -35,8 +35,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
     final nameParts = (data['name'] as String).split(" ");
     _firstNameController.text = nameParts.first;
-    _lastNameController.text =
-    nameParts.length > 1 ? nameParts.sublist(1).join(" ") : "";
+    _lastNameController.text = nameParts.length > 1
+        ? nameParts.sublist(1).join(" ")
+        : "";
     _emailController.text = data['email'];
 
     return data;
@@ -83,12 +84,12 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         _profileFuture = fetchProfile();
       });
     } catch (e) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(
-        content: Text("Update failed: $e"),
-        backgroundColor: Colors.redAccent,
-      ));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("Update failed: $e"),
+          backgroundColor: Colors.redAccent,
+        ),
+      );
     } finally {
       setState(() {
         _isUpdating = false;
@@ -172,11 +173,14 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                           backgroundImage: _imageFile != null
                               ? FileImage(_imageFile!) as ImageProvider
                               : (profileImageUrl != null
-                              ? NetworkImage(profileImageUrl)
-                              : null),
+                                    ? NetworkImage(profileImageUrl)
+                                    : null),
                           child: (_imageFile == null && profileImageUrl == null)
-                              ? const Icon(Icons.person,
-                              size: 55, color: Colors.blueAccent)
+                              ? const Icon(
+                                  Icons.person,
+                                  size: 55,
+                                  color: Colors.blueAccent,
+                                )
                               : null,
                         ),
                         InkWell(
@@ -202,7 +206,10 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                     children: [
                       TextFormField(
                         controller: _firstNameController,
-                        decoration: _inputDecoration("First Name", Icons.person),
+                        decoration: _inputDecoration(
+                          "First Name",
+                          Icons.person,
+                        ),
                       ),
                       const SizedBox(height: 12),
                       TextFormField(
@@ -221,14 +228,17 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                         obscureText: !_showOldPassword,
                         decoration: _inputDecoration("Old Password", Icons.lock)
                             .copyWith(
-                          suffixIcon: IconButton(
-                            icon: Icon(_showOldPassword
-                                ? Icons.visibility
-                                : Icons.visibility_off),
-                            onPressed: () => setState(
-                                    () => _showOldPassword = !_showOldPassword),
-                          ),
-                        ),
+                              suffixIcon: IconButton(
+                                icon: Icon(
+                                  _showOldPassword
+                                      ? Icons.visibility
+                                      : Icons.visibility_off,
+                                ),
+                                onPressed: () => setState(
+                                  () => _showOldPassword = !_showOldPassword,
+                                ),
+                              ),
+                            ),
                       ),
                       const SizedBox(height: 12),
                       TextFormField(
@@ -236,14 +246,17 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                         obscureText: !_showNewPassword,
                         decoration: _inputDecoration("New Password", Icons.lock)
                             .copyWith(
-                          suffixIcon: IconButton(
-                            icon: Icon(_showNewPassword
-                                ? Icons.visibility
-                                : Icons.visibility_off),
-                            onPressed: () => setState(
-                                    () => _showNewPassword = !_showNewPassword),
-                          ),
-                        ),
+                              suffixIcon: IconButton(
+                                icon: Icon(
+                                  _showNewPassword
+                                      ? Icons.visibility
+                                      : Icons.visibility_off,
+                                ),
+                                onPressed: () => setState(
+                                  () => _showNewPassword = !_showNewPassword,
+                                ),
+                              ),
+                            ),
                       ),
                       const SizedBox(height: 24),
                       ElevatedButton(
@@ -251,7 +264,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                         style: ElevatedButton.styleFrom(
                           padding: const EdgeInsets.symmetric(vertical: 14),
                           shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(30)),
+                            borderRadius: BorderRadius.circular(30),
+                          ),
                           backgroundColor: Colors.blueAccent,
                           foregroundColor: Colors.white,
                           minimumSize: const Size(double.infinity, 50),
@@ -259,7 +273,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                         child: Text(
                           _isUpdating ? "Updating..." : "Update Profile",
                           style: const TextStyle(
-                              fontSize: 18, fontWeight: FontWeight.bold),
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ),
                       const SizedBox(height: 24),

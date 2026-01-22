@@ -50,9 +50,9 @@ class _BakerProductPageState extends State<BakerProductPage> {
       });
     } catch (e) {
       setState(() => isLoading = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Failed to load products")),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text("Failed to load products")));
     }
   }
 
@@ -84,22 +84,23 @@ class _BakerProductPageState extends State<BakerProductPage> {
 
     List<Map<String, dynamic>> newProducts = products
         .where((p) => (p["qty"] ?? 0) > 0)
-        .map((p) => {
-      "product_id": p["id"],
-      "name": p["name"],
-      "qty": p["qty"],
-      "unit_price": p["unit_price"],
-      "image": p["image"],
-      "created_at": now,
-    })
+        .map(
+          (p) => {
+            "product_id": p["id"],
+            "name": p["name"],
+            "qty": p["qty"],
+            "unit_price": p["unit_price"],
+            "image": p["image"],
+            "created_at": now,
+          },
+        )
         .toList();
 
     for (var newP in newProducts) {
       bool exists = false;
       for (var existP in existingProducts) {
         if (existP['product_id'] == newP['product_id']) {
-          existP['qty'] =
-              (existP['qty'] ?? 0) + (newP['qty'] ?? 0);
+          existP['qty'] = (existP['qty'] ?? 0) + (newP['qty'] ?? 0);
           existP['created_at'] = now;
           exists = true;
           break;
@@ -110,13 +111,11 @@ class _BakerProductPageState extends State<BakerProductPage> {
       }
     }
 
-    await prefs.setString(
-        'selected_products', jsonEncode(existingProducts));
+    await prefs.setString('selected_products', jsonEncode(existingProducts));
 
     await prefs.setInt(
       'total_products_qty',
-      existingProducts.fold<int>(
-          0, (sum, p) => sum + ((p['qty'] ?? 0) as int)),
+      existingProducts.fold<int>(0, (sum, p) => sum + ((p['qty'] ?? 0) as int)),
     );
 
     for (var p in products) {
@@ -145,17 +144,16 @@ class _BakerProductPageState extends State<BakerProductPage> {
       body: isLoading
           ? const Center(child: CircularProgressIndicator())
           : RefreshIndicator(
-        onRefresh: fetchProducts,
-        child: products.isEmpty
-            ? const Center(child: Text("No products found"))
-            : ListView.builder(
-          padding:
-          const EdgeInsets.fromLTRB(12, 12, 12, 100),
-          itemCount: products.length,
-          itemBuilder: (context, index) =>
-              _productCard(products[index]),
-        ),
-      ),
+              onRefresh: fetchProducts,
+              child: products.isEmpty
+                  ? const Center(child: Text("No products found"))
+                  : ListView.builder(
+                      padding: const EdgeInsets.fromLTRB(12, 12, 12, 100),
+                      itemCount: products.length,
+                      itemBuilder: (context, index) =>
+                          _productCard(products[index]),
+                    ),
+            ),
       bottomNavigationBar: _bottomBar(),
     );
   }
@@ -173,28 +171,26 @@ class _BakerProductPageState extends State<BakerProductPage> {
           Expanded(
             child: Text(
               "$totalItems items selected",
-              style: const TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-              ),
+              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
             ),
           ),
           ElevatedButton(
             onPressed: totalItems == 0 ? null : _save,
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.blue,
-              padding: const EdgeInsets.symmetric(
-                  horizontal: 26, vertical: 14),
+              padding: const EdgeInsets.symmetric(horizontal: 26, vertical: 14),
               shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(14)),
+                borderRadius: BorderRadius.circular(14),
+              ),
             ),
             child: const Text(
               "Save",
               style: TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w600),
+                color: Colors.white,
+                fontWeight: FontWeight.w600,
+              ),
             ),
-          )
+          ),
         ],
       ),
     );
@@ -208,37 +204,35 @@ class _BakerProductPageState extends State<BakerProductPage> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        boxShadow: const [
-          BoxShadow(color: Colors.black12, blurRadius: 10)
-        ],
+        boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 10)],
       ),
       child: Row(
         children: [
           ClipRRect(
             borderRadius: BorderRadius.circular(12),
-            child: (product["image"] != null &&
-                product["image"].toString().isNotEmpty)
+            child:
+                (product["image"] != null &&
+                    product["image"].toString().isNotEmpty)
                 ? Image.network(
-              product["image"],
-              height: 64,
-              width: 64,
-              fit: BoxFit.cover,
-            )
+                    product["image"],
+                    height: 64,
+                    width: 64,
+                    fit: BoxFit.cover,
+                  )
                 : CircleAvatar(
-              radius: 32,
-              backgroundColor:
-              Colors.blueAccent.withOpacity(0.2),
-              child: Text(
-                product["name"].isNotEmpty
-                    ? product["name"][0].toUpperCase()
-                    : "?",
-                style: const TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.blueAccent,
-                ),
-              ),
-            ),
+                    radius: 32,
+                    backgroundColor: Colors.blueAccent.withOpacity(0.2),
+                    child: Text(
+                      product["name"].isNotEmpty
+                          ? product["name"][0].toUpperCase()
+                          : "?",
+                      style: const TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.blueAccent,
+                      ),
+                    ),
+                  ),
           ),
           const SizedBox(width: 14),
           Expanded(
@@ -248,15 +242,14 @@ class _BakerProductPageState extends State<BakerProductPage> {
                 Text(
                   product["name"],
                   style: const TextStyle(
-                      fontSize: 17,
-                      fontWeight: FontWeight.w600),
+                    fontSize: 17,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   product["detail"] ?? "",
-                  style: const TextStyle(
-                      fontSize: 14,
-                      color: Colors.black54),
+                  style: const TextStyle(fontSize: 14, color: Colors.black54),
                 ),
               ],
             ),

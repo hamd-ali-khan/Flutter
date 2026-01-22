@@ -48,8 +48,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Text(snapshot.error.toString(),
-                      style: const TextStyle(color: Colors.red)),
+                  Text(
+                    snapshot.error.toString(),
+                    style: const TextStyle(color: Colors.red),
+                  ),
                   const SizedBox(height: 16),
                   ElevatedButton(
                     onPressed: () {
@@ -71,7 +73,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
           final branch = data['branch']?['branch_name'] ?? 'N/A';
           final joined = _formatDate(data['created_at'] ?? '');
           final profileImage =
-          (data['profile_photo_url'] != null && data['profile_photo_url'] != "")
+              (data['profile_photo_url'] != null &&
+                  data['profile_photo_url'] != "")
               ? data['profile_photo_url']
               : null;
 
@@ -100,20 +103,32 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           ? NetworkImage(profileImage)
                           : null,
                       child: profileImage == null
-                          ? const Icon(Icons.person,
-                          size: 55, color: Colors.blueAccent)
+                          ? const Icon(
+                              Icons.person,
+                              size: 55,
+                              color: Colors.blueAccent,
+                            )
                           : null,
                     ),
                   ),
                 ),
                 const SizedBox(height: 16),
-                Text(name,
-                    style: const TextStyle(
-                        fontSize: 22, fontWeight: FontWeight.w600)),
+                Text(
+                  name,
+                  style: const TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
                 const SizedBox(height: 6),
-                Text(email,
-                    style: const TextStyle(
-                        fontSize: 16, color: Colors.grey, fontWeight: FontWeight.w400)),
+                Text(
+                  email,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    color: Colors.grey,
+                    fontWeight: FontWeight.w400,
+                  ),
+                ),
                 const SizedBox(height: 24),
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -131,21 +146,28 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   child: ElevatedButton(
                     onPressed: () {
                       Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                              builder: (_) => const EditProfileScreen()));
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const EditProfileScreen(),
+                        ),
+                      );
                     },
                     style: ElevatedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(vertical: 16),
                       shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(30)),
+                        borderRadius: BorderRadius.circular(30),
+                      ),
                       backgroundColor: Colors.blueAccent,
                       foregroundColor: Colors.white,
                       minimumSize: const Size(double.infinity, 50),
                     ),
-                    child: const Text("Edit Profile",
-                        style: TextStyle(
-                            fontSize: 18, fontWeight: FontWeight.bold)),
+                    child: const Text(
+                      "Edit Profile",
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
                   ),
                 ),
                 const SizedBox(height: 32),
@@ -179,13 +201,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(title,
-                  style: const TextStyle(
-                      color: Colors.grey, fontWeight: FontWeight.w500)),
+              Text(
+                title,
+                style: const TextStyle(
+                  color: Colors.grey,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
               const SizedBox(height: 4),
-              Text(value,
-                  style: const TextStyle(
-                      fontWeight: FontWeight.w600, fontSize: 16)),
+              Text(
+                value,
+                style: const TextStyle(
+                  fontWeight: FontWeight.w600,
+                  fontSize: 16,
+                ),
+              ),
             ],
           ),
         ],

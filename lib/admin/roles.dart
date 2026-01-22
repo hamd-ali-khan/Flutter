@@ -54,12 +54,16 @@ class _AdminRolesPageState extends State<AdminRolesPage> {
       final endpoint = showDeleted ? "roles?deleted=true" : "roles";
       final data = await ApiService.get(endpoint);
 
-      roles = List<Map<String, dynamic>>.from(data).map((r) => {
-        "id": r["id"],
-        "title": r["title"] ?? "",
-        "created_at": r["created_at"] ?? "",
-        "deleted_at": r["deleted_at"],
-      }).toList();
+      roles = List<Map<String, dynamic>>.from(data)
+          .map(
+            (r) => {
+              "id": r["id"],
+              "title": r["title"] ?? "",
+              "created_at": r["created_at"] ?? "",
+              "deleted_at": r["deleted_at"],
+            },
+          )
+          .toList();
 
       _filterRoles();
     } catch (_) {
@@ -131,9 +135,7 @@ class _AdminRolesPageState extends State<AdminRolesPage> {
             child: const Text("Cancel"),
           ),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red,
-            ),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
             onPressed: () => Navigator.pop(context, true),
             child: const Text("Delete"),
           ),
@@ -206,12 +208,12 @@ class _AdminRolesPageState extends State<AdminRolesPage> {
                 child: _isSaving
                     ? const CircularProgressIndicator(color: Colors.white)
                     : const Text(
-                  "Create Role",
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
+                        "Create Role",
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
               ),
             ),
           ],
@@ -266,13 +268,12 @@ class _AdminRolesPageState extends State<AdminRolesPage> {
         centerTitle: true,
         backgroundColor: Colors.blue,
         foregroundColor: Colors.white,
-        elevation: 6, // Increase for a more visible shadow
-        shadowColor: Colors.black54, // Shadow color
+        elevation: 6,
+        // Increase for a more visible shadow
+        shadowColor: Colors.black54,
+        // Shadow color
         actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: fetchRoles,
-          ),
+          IconButton(icon: const Icon(Icons.refresh), onPressed: fetchRoles),
         ],
       ),
 
@@ -296,22 +297,14 @@ class _AdminRolesPageState extends State<AdminRolesPage> {
           ),
           Row(
             children: [
-              _toggleBtn(
-                "Active",
-                !showDeleted,
-                    () {
-                  setState(() => showDeleted = false);
-                  fetchRoles();
-                },
-              ),
-              _toggleBtn(
-                "Deleted",
-                showDeleted,
-                    () {
-                  setState(() => showDeleted = true);
-                  fetchRoles();
-                },
-              ),
+              _toggleBtn("Active", !showDeleted, () {
+                setState(() => showDeleted = false);
+                fetchRoles();
+              }),
+              _toggleBtn("Deleted", showDeleted, () {
+                setState(() => showDeleted = true);
+                fetchRoles();
+              }),
             ],
           ),
           Expanded(
@@ -320,64 +313,62 @@ class _AdminRolesPageState extends State<AdminRolesPage> {
                 : filteredRoles.isEmpty
                 ? const Center(child: Text("No roles found"))
                 : ListView.builder(
-              padding: const EdgeInsets.all(12),
-              itemCount: filteredRoles.length,
-              itemBuilder: (_, i) {
-                final r = filteredRoles[i];
-                final deleted = r["deleted_at"] != null;
+                    padding: const EdgeInsets.all(12),
+                    itemCount: filteredRoles.length,
+                    itemBuilder: (_, i) {
+                      final r = filteredRoles[i];
+                      final deleted = r["deleted_at"] != null;
 
-                return Card(
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: ListTile(
-                    leading: CircleAvatar(
-                      backgroundColor:
-                      deleted ? Colors.grey : Colors.blue,
-                      child: const Icon(
-                        Icons.security,
-                        color: Colors.white,
-                      ),
-                    ),
-                    title: Text(
-                      r["title"],
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        decoration: deleted
-                            ? TextDecoration.lineThrough
-                            : null,
-                      ),
-                    ),
-                    subtitle: Text(
-                      formatDateTime(r["created_at"]),
-                      style: const TextStyle(fontSize: 12),
-                    ),
-                    trailing: PopupMenuButton<String>(
-                      onSelected: (v) {
-                        if (v == "delete") _confirmDeleteRole(r["id"]);
-                        if (v == "restore") _restoreRole(r["id"]);
-                      },
-                      itemBuilder: (_) => [
-                        PopupMenuItem(
-                          value: deleted ? "restore" : "delete",
-                          child: Text(deleted ? "Restore" : "Delete"),
+                      return Card(
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
                         ),
-                      ],
-                    ),
+                        child: ListTile(
+                          leading: CircleAvatar(
+                            backgroundColor: deleted
+                                ? Colors.grey
+                                : Colors.blue,
+                            child: const Icon(
+                              Icons.security,
+                              color: Colors.white,
+                            ),
+                          ),
+                          title: Text(
+                            r["title"],
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              decoration: deleted
+                                  ? TextDecoration.lineThrough
+                                  : null,
+                            ),
+                          ),
+                          subtitle: Text(
+                            formatDateTime(r["created_at"]),
+                            style: const TextStyle(fontSize: 12),
+                          ),
+                          trailing: PopupMenuButton<String>(
+                            onSelected: (v) {
+                              if (v == "delete") _confirmDeleteRole(r["id"]);
+                              if (v == "restore") _restoreRole(r["id"]);
+                            },
+                            itemBuilder: (_) => [
+                              PopupMenuItem(
+                                value: deleted ? "restore" : "delete",
+                                child: Text(deleted ? "Restore" : "Delete"),
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    },
                   ),
-                );
-              },
-            ),
           ),
         ],
       ),
       floatingActionButton: FloatingActionButton.extended(
         backgroundColor: Colors.blue,
         icon: const Icon(Icons.add, color: Colors.white),
-        label: const Text(
-          "Add Role",
-          style: TextStyle(color: Colors.white),
-        ),
+        label: const Text("Add Role", style: TextStyle(color: Colors.white)),
         onPressed: _openRoleModal,
       ),
     );

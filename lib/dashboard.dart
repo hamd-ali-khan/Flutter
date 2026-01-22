@@ -65,7 +65,7 @@ class _DashboardState extends State<Dashboard> {
     Navigator.pushAndRemoveUntil(
       context,
       MaterialPageRoute(builder: (_) => const Login()),
-          (_) => false,
+      (_) => false,
     );
   }
 
@@ -108,11 +108,11 @@ class _DashboardState extends State<Dashboard> {
   String formatCreatedAt(String createdAt) {
     try {
       DateTime dt = DateTime.parse(createdAt);
-      return "${dt.day.toString().padLeft(2,'0')}/"
-          "${dt.month.toString().padLeft(2,'0')}/"
+      return "${dt.day.toString().padLeft(2, '0')}/"
+          "${dt.month.toString().padLeft(2, '0')}/"
           "${dt.year} "
-          "${dt.hour.toString().padLeft(2,'0')}:"
-          "${dt.minute.toString().padLeft(2,'0')}";
+          "${dt.hour.toString().padLeft(2, '0')}:"
+          "${dt.minute.toString().padLeft(2, '0')}";
     } catch (e) {
       return createdAt;
     }
@@ -121,7 +121,9 @@ class _DashboardState extends State<Dashboard> {
   // ================= TOTAL QUANTITY =================
   int getTotalQuantity() {
     return selectedProducts.fold<int>(
-        0, (sum, p) => sum + ((p['qty'] ?? 0) as int));
+      0,
+      (sum, p) => sum + ((p['qty'] ?? 0) as int),
+    );
   }
 
   // ================= ADD OR UPDATE PRODUCT =================
@@ -165,135 +167,147 @@ class _DashboardState extends State<Dashboard> {
                 TextButton.icon(
                   onPressed: clearAllSelectedProducts,
                   icon: const Icon(Icons.clear_all, color: Colors.red),
-                  label: const Text("Clear All",
-                      style: TextStyle(color: Colors.red)),
+                  label: const Text(
+                    "Clear All",
+                    style: TextStyle(color: Colors.red),
+                  ),
                 ),
             ],
           ),
           const SizedBox(height: 16),
           selectedProducts.isEmpty
               ? const Text(
-            "No products selected",
-            style: TextStyle(fontSize: 16, color: Colors.grey),
-          )
+                  "No products selected",
+                  style: TextStyle(fontSize: 16, color: Colors.grey),
+                )
               : Column(
-            children: [
-              ListView.builder(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                itemCount: selectedProducts.length,
-                itemBuilder: (context, index) {
-                  final product = selectedProducts[index];
-                  return Card(
-                    elevation: 2,
-                    margin: const EdgeInsets.only(bottom: 12),
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12)),
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 12, vertical: 8),
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        children: [
-                          // Product Image
-                          ClipRRect(
-                            borderRadius: BorderRadius.circular(8),
-                            child: _imageWidget(product),
+                  children: [
+                    ListView.builder(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      itemCount: selectedProducts.length,
+                      itemBuilder: (context, index) {
+                        final product = selectedProducts[index];
+                        return Card(
+                          elevation: 2,
+                          margin: const EdgeInsets.only(bottom: 12),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
                           ),
-                          const SizedBox(width: 12),
-                          // Name + CreatedAt
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment:
-                              CrossAxisAlignment.start,
-                              mainAxisAlignment:
-                              MainAxisAlignment.center,
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 8,
+                            ),
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.center,
                               children: [
-                                Text(
-                                  product["name"] ?? "Unknown",
-                                  style:
-                                  const TextStyle(fontSize: 16),
+                                // Product Image
+                                ClipRRect(
+                                  borderRadius: BorderRadius.circular(8),
+                                  child: _imageWidget(product),
                                 ),
-                                if (product["created_at"] != null)
-                                  Text(
-                                    "Created at: ${formatCreatedAt(product["created_at"])}",
-                                    style: const TextStyle(
-                                        fontSize: 12,
-                                        color: Colors.grey),
+                                const SizedBox(width: 12),
+                                // Name + CreatedAt
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Text(
+                                        product["name"] ?? "Unknown",
+                                        style: const TextStyle(fontSize: 16),
+                                      ),
+                                      if (product["created_at"] != null)
+                                        Text(
+                                          "Created at: ${formatCreatedAt(product["created_at"])}",
+                                          style: const TextStyle(
+                                            fontSize: 12,
+                                            color: Colors.grey,
+                                          ),
+                                        ),
+                                    ],
                                   ),
+                                ),
+                                // Qty + Delete Button
+                                Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 10,
+                                        vertical: 6,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: Colors.lightBlueAccent
+                                            .withOpacity(0.3),
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                      child: Text(
+                                        "Qty: ${product["qty"] ?? 0}",
+                                        style: const TextStyle(
+                                          color: Colors.black87,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    IconButton(
+                                      icon: const Icon(
+                                        Icons.delete,
+                                        color: Colors.red,
+                                      ),
+                                      onPressed: () => deleteProduct(index),
+                                      padding: EdgeInsets.zero,
+                                      constraints: const BoxConstraints(),
+                                      iconSize: 20,
+                                    ),
+                                  ],
+                                ),
                               ],
                             ),
                           ),
-                          // Qty + Delete Button
-                          Column(
-                            mainAxisSize: MainAxisSize.min,
-                            mainAxisAlignment:
-                            MainAxisAlignment.center,
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 10, vertical: 6),
-                                decoration: BoxDecoration(
-                                  color: Colors.lightBlueAccent
-                                      .withOpacity(0.3),
-                                  borderRadius:
-                                  BorderRadius.circular(12),
-                                ),
-                                child: Text(
-                                  "Qty: ${product["qty"] ?? 0}",
-                                  style: const TextStyle(
-                                      color: Colors.black87,
-                                      fontWeight: FontWeight.bold),
-                                ),
+                        );
+                      },
+                    ),
+                    const SizedBox(height: 8),
+                    // Total quantity card
+                    Card(
+                      color: Colors.blueAccent.withOpacity(0.1),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 12,
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const Text(
+                              "Total Quantity:",
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
                               ),
-                              const SizedBox(height: 4),
-                              IconButton(
-                                icon: const Icon(Icons.delete,
-                                    color: Colors.red),
-                                onPressed: () =>
-                                    deleteProduct(index),
-                                padding: EdgeInsets.zero,
-                                constraints: const BoxConstraints(),
-                                iconSize: 20,
+                            ),
+                            Text(
+                              "${getTotalQuantity()}",
+                              style: const TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.black87,
                               ),
-                            ],
-                          ),
-                        ],
+                            ),
+                          ],
+                        ),
                       ),
                     ),
-                  );
-                },
-              ),
-              const SizedBox(height: 8),
-              // Total quantity card
-              Card(
-                color: Colors.blueAccent.withOpacity(0.1),
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12)),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 16, vertical: 12),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Text(
-                        "Total Quantity:",
-                        style: TextStyle(
-                            fontSize: 18, fontWeight: FontWeight.bold),
-                      ),
-                      Text(
-                        "${getTotalQuantity()}",
-                        style: const TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.black87),
-                      ),
-                    ],
-                  ),
+                  ],
                 ),
-              ),
-            ],
-          ),
         ],
       ),
     );
@@ -331,8 +345,10 @@ class _DashboardState extends State<Dashboard> {
           child: AppBar(
             backgroundColor: Colors.white,
             elevation: 0,
-            title: const Text("Dashboard",
-                style: TextStyle(color: Colors.black)),
+            title: const Text(
+              "Dashboard",
+              style: TextStyle(color: Colors.black),
+            ),
             centerTitle: true,
             actions: [
               Padding(
@@ -342,11 +358,14 @@ class _DashboardState extends State<Dashboard> {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                          builder: (_) => const EditProfileScreen()),
+                        builder: (_) => const EditProfileScreen(),
+                      ),
                     );
                   },
                   child: const CircleAvatar(
-                      radius: 20, child: Icon(Icons.person)),
+                    radius: 20,
+                    child: Icon(Icons.person),
+                  ),
                 ),
               ),
             ],
@@ -360,8 +379,9 @@ class _DashboardState extends State<Dashboard> {
             UserAccountsDrawerHeader(
               accountName: Text(userName),
               accountEmail: Text(userEmail),
-              currentAccountPicture:
-              const CircleAvatar(child: Icon(Icons.person)),
+              currentAccountPicture: const CircleAvatar(
+                child: Icon(Icons.person),
+              ),
               decoration: const BoxDecoration(color: Colors.blueAccent),
             ),
             ListTile(
@@ -421,7 +441,7 @@ class _DashboardState extends State<Dashboard> {
               color: Colors.black.withOpacity(0.15),
               blurRadius: 15,
               offset: const Offset(0, 5),
-            )
+            ),
           ],
         ),
         child: ClipRRect(
@@ -457,11 +477,17 @@ class _DashboardState extends State<Dashboard> {
             },
             items: const [
               BottomNavigationBarItem(
-                  icon: Icon(Icons.dashboard, size: 28), label: "Home"),
+                icon: Icon(Icons.dashboard, size: 28),
+                label: "Home",
+              ),
               BottomNavigationBarItem(
-                  icon: Icon(Icons.shopping_cart, size: 28), label: "Items"),
+                icon: Icon(Icons.shopping_cart, size: 28),
+                label: "Items",
+              ),
               BottomNavigationBarItem(
-                  icon: Icon(Icons.person, size: 28), label: "Profile"),
+                icon: Icon(Icons.person, size: 28),
+                label: "Profile",
+              ),
             ],
           ),
         ),

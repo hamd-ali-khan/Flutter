@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import '/dashboard.dart';               // User Dashboard
-import 'admin/admin_dashboard.dart';          // Admin Dashboard
+import '/dashboard.dart'; // User Dashboard
+import 'admin/admin_dashboard.dart'; // Admin Dashboard
 
 import '../apis/api_services.dart';
 import '../utils/token_storage.dart';
@@ -181,8 +181,7 @@ class _LoginState extends State<Login> {
                             : Icons.visibility,
                       ),
                       onPressed: () {
-                        setState(() =>
-                        _obscurePassword = !_obscurePassword);
+                        setState(() => _obscurePassword = !_obscurePassword);
                       },
                     ),
                     border: OutlineInputBorder(

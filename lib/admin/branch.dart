@@ -62,8 +62,10 @@ class _AdminBranchPageState extends State<AdminBranchPage> {
     final query = branchSearchController.text.toLowerCase();
     setState(() {
       filteredBranches = branches
-          .where((branch) =>
-          (branch['branch_name'] ?? "").toLowerCase().contains(query))
+          .where(
+            (branch) =>
+            (branch['branch_name'] ?? "").toLowerCase().contains(query),
+      )
           .toList();
     });
   }
@@ -72,10 +74,9 @@ class _AdminBranchPageState extends State<AdminBranchPage> {
   Future<void> addNewBranch(String branchName) async {
     setState(() => isAddingBranch = true);
     try {
-      final response = await ApiService.post(
-        "new_branch",
-        {"branch_name": branchName},
-      );
+      final response = await ApiService.post("new_branch", {
+        "branch_name": branchName,
+      });
 
       if (response['status'] == true) {
         await fetchBranches();
@@ -97,140 +98,146 @@ class _AdminBranchPageState extends State<AdminBranchPage> {
 
     return showDialog<bool>(
       context: context,
-      builder: (context) =>
-          StatefulBuilder(
-            builder: (context, setDialogState) =>
-                Dialog(
-                  shape:
-                  RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(20)),
-                  child: Container(
-                    padding: const EdgeInsets.all(20),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: Colors.blue, width: 2),
-                      boxShadow: [
-                        BoxShadow(
-                            color: Colors.blue.withOpacity(0.2),
-                            blurRadius: 10,
-                            spreadRadius: 2)
-                      ],
-                    ),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        CircleAvatar(
-                          radius: 28,
-                          backgroundColor: Colors.blue.withOpacity(0.1),
-                          child:
-                          const Icon(Icons.delete_outline, size: 30,
-                              color: Colors.blue),
-                        ),
-                        const SizedBox(height: 12),
-                        const Text(
-                          "Delete Branch",
-                          style: TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.blue),
-                        ),
-                        const SizedBox(height: 8),
-                        const Text(
-                          "Are you sure you want to delete this branch?",
-                          textAlign: TextAlign.center,
-                          style: TextStyle(fontSize: 16),
-                        ),
-                        const SizedBox(height: 16),
-                        Row(
-                          children: [
-                            Expanded(
-                              child: OutlinedButton(
-                                style: OutlinedButton.styleFrom(
-                                  side: const BorderSide(color: Colors.blue),
-                                  shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(12)),
-                                  padding: const EdgeInsets.symmetric(
-                                      vertical: 12),
-                                ),
-                                onPressed:
-                                isDeleting ? null : () =>
-                                    Navigator.pop(context, false),
-                                child: const Text(
-                                  "Cancel",
-                                  style: TextStyle(
-                                      color: Colors.blue, fontSize: 16),
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: ElevatedButton(
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.red,
-                                  shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(12)),
-                                  padding: const EdgeInsets.symmetric(
-                                      vertical: 12),
-                                  elevation: 4,
-                                ),
-                                onPressed: isDeleting
-                                    ? null
-                                    : () async {
-                                  setDialogState(() => isDeleting = true);
-                                  try {
-                                    await ApiService.delete(
-                                        "delete_branch/$branchId");
-                                    Navigator.pop(context, true);
-                                  } catch (e) {
-                                    Navigator.pop(context, false);
-                                    _showMessage(
-                                        "Failed to delete branch: $e",
-                                        isError: true);
-                                  }
-                                },
-                                child: AnimatedSwitcher(
-                                  duration: const Duration(milliseconds: 250),
-                                  child: isDeleting
-                                      ? Row(
-                                    key: const ValueKey("deleting"),
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: const [
-                                      SizedBox(
-                                        height: 20,
-                                        width: 20,
-                                        child: CircularProgressIndicator(
-                                            color: Colors.white,
-                                            strokeWidth: 2.5),
-                                      ),
-                                      SizedBox(width: 12),
-                                      Text(
-                                        "Deleting...",
-                                        style: TextStyle(
-                                            color: Colors.white,
-                                            fontSize: 16,
-                                            fontWeight: FontWeight.bold),
-                                      )
-                                    ],
-                                  )
-                                      : const Text(
-                                    "Delete",
-                                    key: ValueKey("delete"),
-                                    style: TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.bold),
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ],
-                        )
-                      ],
-                    ),
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => Dialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: Colors.blue, width: 2),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.blue.withOpacity(0.2),
+                  blurRadius: 10,
+                  spreadRadius: 2,
+                ),
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                CircleAvatar(
+                  radius: 28,
+                  backgroundColor: Colors.blue.withOpacity(0.1),
+                  child: const Icon(
+                    Icons.delete_outline,
+                    size: 30,
+                    color: Colors.blue,
                   ),
                 ),
+                const SizedBox(height: 12),
+                const Text(
+                  "Delete Branch",
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.blue,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                const Text(
+                  "Are you sure you want to delete this branch?",
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: 16),
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        style: OutlinedButton.styleFrom(
+                          side: const BorderSide(color: Colors.blue),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                        ),
+                        onPressed: isDeleting
+                            ? null
+                            : () => Navigator.pop(context, false),
+                        child: const Text(
+                          "Cancel",
+                          style: TextStyle(color: Colors.blue, fontSize: 16),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.red,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          elevation: 4,
+                        ),
+                        onPressed: isDeleting
+                            ? null
+                            : () async {
+                          setDialogState(() => isDeleting = true);
+                          try {
+                            await ApiService.delete(
+                              "delete_branch/$branchId",
+                            );
+                            Navigator.pop(context, true);
+                          } catch (e) {
+                            Navigator.pop(context, false);
+                            _showMessage(
+                              "Failed to delete branch: $e",
+                              isError: true,
+                            );
+                          }
+                        },
+                        child: AnimatedSwitcher(
+                          duration: const Duration(milliseconds: 250),
+                          child: isDeleting
+                              ? Row(
+                            key: const ValueKey("deleting"),
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: const [
+                              SizedBox(
+                                height: 20,
+                                width: 20,
+                                child: CircularProgressIndicator(
+                                  color: Colors.white,
+                                  strokeWidth: 2.5,
+                                ),
+                              ),
+                              SizedBox(width: 12),
+                              Text(
+                                "Deleting...",
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ],
+                          )
+                              : const Text(
+                            "Delete",
+                            key: ValueKey("delete"),
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
+        ),
+      ),
     );
   }
 
@@ -249,72 +256,75 @@ class _AdminBranchPageState extends State<AdminBranchPage> {
   void _showMessage(String message, {bool isError = false}) {
     showDialog(
       context: context,
-      builder: (_) =>
-          Dialog(
-            shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(20)),
-            child: Container(
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: Colors.blue, width: 2),
-                boxShadow: [
-                  BoxShadow(
-                      color: Colors.blue.withOpacity(0.2),
-                      blurRadius: 10,
-                      spreadRadius: 2)
-                ],
+      builder: (_) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        child: Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: Colors.blue, width: 2),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.blue.withOpacity(0.2),
+                blurRadius: 10,
+                spreadRadius: 2,
               ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  CircleAvatar(
-                    radius: 28,
-                    backgroundColor: Colors.blue.withOpacity(0.1),
-                    child: Icon(
-                      isError ? Icons.error_outline : Icons
-                          .check_circle_outline,
-                      size: 30,
-                      color: Colors.blue,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  Text(
-                    isError ? "Error" : "Success",
-                    style: const TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.blue),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(message,
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(fontSize: 16)),
-                  const SizedBox(height: 16),
-                  SizedBox(
-                    width: double.infinity,
-                    height: 45,
-                    child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.blue,
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12)),
-                      ),
-                      onPressed: () => Navigator.pop(context),
-                      child: const Text(
-                        "OK",
-                        style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
+            ],
           ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              CircleAvatar(
+                radius: 28,
+                backgroundColor: Colors.blue.withOpacity(0.1),
+                child: Icon(
+                  isError ? Icons.error_outline : Icons.check_circle_outline,
+                  size: 30,
+                  color: Colors.blue,
+                ),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                isError ? "Error" : "Success",
+                style: const TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.blue,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                message,
+                textAlign: TextAlign.center,
+                style: const TextStyle(fontSize: 16),
+              ),
+              const SizedBox(height: 16),
+              SizedBox(
+                width: double.infinity,
+                height: 45,
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.blue,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text(
+                    "OK",
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 
@@ -324,114 +334,121 @@ class _AdminBranchPageState extends State<AdminBranchPage> {
 
     showDialog(
       context: context,
-      builder: (context) =>
-          StatefulBuilder(
-            builder: (context, setDialogState) =>
-                Center(
-                  child: Material(
-                    type: MaterialType.transparency,
-                    child: Container(
-                      width: MediaQuery
-                          .of(context)
-                          .size
-                          .width * 0.85,
-                      constraints: const BoxConstraints(maxWidth: 400),
-                      padding: const EdgeInsets.all(20),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(16),
-                        boxShadow: [
-                          BoxShadow(
-                              color: Colors.black.withOpacity(0.2),
-                              blurRadius: 12,
-                              offset: const Offset(0, 6))
-                        ],
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => Center(
+          child: Material(
+            type: MaterialType.transparency,
+            child: Container(
+              width: MediaQuery.of(context).size.width * 0.85,
+              constraints: const BoxConstraints(maxWidth: 400),
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.2),
+                    blurRadius: 12,
+                    offset: const Offset(0, 6),
+                  ),
+                ],
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text(
+                    "Add New Branch",
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.blue,
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  TextField(
+                    controller: branchController,
+                    textCapitalization: TextCapitalization.sentences,
+                    decoration: InputDecoration(
+                      labelText: "Branch Name",
+                      labelStyle: const TextStyle(color: Colors.blue),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
                       ),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Text(
-                            "Add New Branch",
-                            style: TextStyle(
-                                fontSize: 20,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.blue),
-                          ),
-                          const SizedBox(height: 20),
-                          TextField(
-                            controller: branchController,
-                            textCapitalization: TextCapitalization.sentences,
-                            decoration: InputDecoration(
-                              labelText: "Branch Name",
-                              labelStyle: const TextStyle(color: Colors.blue),
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              focusedBorder: OutlineInputBorder(
-                                borderSide:
-                                const BorderSide(color: Colors.blue, width: 2),
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              contentPadding:
-                              const EdgeInsets.symmetric(
-                                  horizontal: 16, vertical: 14),
-                            ),
-                          ),
-                          const SizedBox(height: 30),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.end,
-                            children: [
-                              OutlinedButton(
-                                onPressed: () => Navigator.pop(context),
-                                style: OutlinedButton.styleFrom(
-                                  side: BorderSide(color: Colors.grey.shade300),
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 16, vertical: 12),
-                                  shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(12)),
-                                ),
-                                child: const Text(
-                                  "Cancel",
-                                  style: TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      color: Colors.black87),
-                                ),
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: ElevatedButton(
-                                  onPressed: () {
-                                    final name = branchController.text.trim();
-                                    if (name.isEmpty) return;
-                                    Navigator.pop(context);
-                                    addNewBranch(name);
-                                  },
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: Colors.blue,
-                                    padding: const EdgeInsets.symmetric(
-                                        horizontal: 20, vertical: 14),
-                                    shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(
-                                            12)),
-                                    elevation: 4,
-                                  ),
-                                  child: const Text(
-                                    "Add Branch",
-                                    style: TextStyle(
-                                        color: Colors.white,
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 16),
-                                  ),
-                                ),
-                              ),
-                            ],
-                          )
-                        ],
+                      focusedBorder: OutlineInputBorder(
+                        borderSide: const BorderSide(
+                          color: Colors.blue,
+                          width: 2,
+                        ),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 14,
                       ),
                     ),
                   ),
-                ),
+                  const SizedBox(height: 30),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      OutlinedButton(
+                        onPressed: () => Navigator.pop(context),
+                        style: OutlinedButton.styleFrom(
+                          side: BorderSide(color: Colors.grey.shade300),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 12,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        child: const Text(
+                          "Cancel",
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: Colors.black87,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: ElevatedButton(
+                          onPressed: () {
+                            final name = branchController.text.trim();
+                            if (name.isEmpty) return;
+                            Navigator.pop(context);
+                            addNewBranch(name);
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.blue,
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 20,
+                              vertical: 14,
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            elevation: 4,
+                          ),
+                          child: const Text(
+                            "Add Branch",
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
           ),
+        ),
+      ),
     );
   }
 
@@ -460,10 +477,14 @@ class _AdminBranchPageState extends State<AdminBranchPage> {
                 prefixIcon: const Icon(Icons.search, color: Colors.blue),
                 filled: true,
                 fillColor: Colors.white,
-                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 14,
+                ),
                 border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide.none),
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide.none,
+                ),
               ),
             ),
           ),
@@ -478,30 +499,46 @@ class _AdminBranchPageState extends State<AdminBranchPage> {
                 final branch = filteredBranches[index];
                 return Card(
                   shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12)),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                   elevation: 3,
                   margin: const EdgeInsets.symmetric(vertical: 8),
                   child: ListTile(
                     contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 16, vertical: 12),
+                      horizontal: 16,
+                      vertical: 12,
+                    ),
                     leading: CircleAvatar(
                       backgroundColor: Colors.blue[100],
-                      child: const Icon(Icons.business, color: Colors.blue),
+                      child: const Icon(
+                        Icons.business,
+                        color: Colors.blue,
+                      ),
                     ),
                     title: Text(
                       branch['branch_name'] ?? "Branch",
                       style: const TextStyle(
-                          fontWeight: FontWeight.bold, fontSize: 16),
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
                     ),
                     trailing: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         IconButton(
-                            icon: const Icon(Icons.edit, color: Colors.blue),
-                            onPressed: () {}),
+                          icon: const Icon(
+                            Icons.edit,
+                            color: Colors.blue,
+                          ),
+                          onPressed: () {},
+                        ),
                         IconButton(
-                            icon: const Icon(Icons.delete, color: Colors.red),
-                            onPressed: () => deleteBranch(index)),
+                          icon: const Icon(
+                            Icons.delete,
+                            color: Colors.red,
+                          ),
+                          onPressed: () => deleteBranch(index),
+                        ),
                       ],
                     ),
                   ),
@@ -517,12 +554,18 @@ class _AdminBranchPageState extends State<AdminBranchPage> {
             ? const SizedBox(
           width: 24,
           height: 24,
-          child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5),
+          child: CircularProgressIndicator(
+            color: Colors.white,
+            strokeWidth: 2.5,
+          ),
         )
             : const Icon(Icons.add, color: Colors.white),
         label: Text(
           isAddingBranch ? "Adding..." : "Add Branch",
-          style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
+          style: const TextStyle(
+            fontWeight: FontWeight.bold,
+            color: Colors.white,
+          ),
         ),
         backgroundColor: Colors.blue,
         elevation: 4,
